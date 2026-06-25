@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# 환경 변수 (절대 커밋 금지)
+.env
+backend/.env
+frontend/.env.local
+frontend/.env*.local
+
+# 데이터베이스 (로컬 전용)
+*.db
+*.sqlite
+
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+
+# 빌드 결과
+.turbo/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
