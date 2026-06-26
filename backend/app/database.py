@@ -4,10 +4,14 @@ from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./somabi.db")
 
-# Supabase/Heroku returns postgres:// but SQLAlchemy requires postgresql+psycopg2://
+# SQLAlchemy requires postgresql+psycopg2:// driver prefix
 if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace(
         "postgres://", "postgresql+psycopg2://", 1
+    )
+elif SQLALCHEMY_DATABASE_URL.startswith("postgresql://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace(
+        "postgresql://", "postgresql+psycopg2://", 1
     )
 
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
