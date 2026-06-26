@@ -14,8 +14,14 @@ from app.agent.nodes import publish_node
 from app.config import PORT
 from sqlalchemy.orm import Session
 
-# DB 테이블 자동 생성
+# DB 테이블 자동 생성 + 컬럼 마이그레이션
 models.Base.metadata.create_all(bind=engine)
+
+from sqlalchemy import text
+with engine.connect() as _conn:
+    _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS text_model VARCHAR"))
+    _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS image_model VARCHAR"))
+    _conn.commit()
 
 app = FastAPI(
     title="SoMaBi API",
