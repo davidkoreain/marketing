@@ -16,7 +16,7 @@ def get_llm(state: dict):
     def _gemini():
         if gemini_key and not gemini_key.startswith("your_gemini"):
             from langchain_google_genai import ChatGoogleGenerativeAI
-            return ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=gemini_key, temperature=0.7)
+            return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=gemini_key, temperature=0.7)
         return None
 
     if model_pref == "openai":
