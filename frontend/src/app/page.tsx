@@ -82,7 +82,8 @@ export default function SoMaBiPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`서버 오류: ${response.statusText}`);
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(`서버 오류 (${response.status}): ${errData.detail || response.statusText || "알 수 없는 오류"}`);
       }
 
       const data = await response.json();
@@ -136,7 +137,8 @@ export default function SoMaBiPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`피드백 전송 실패: ${response.statusText}`);
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(`피드백 전송 실패 (${response.status}): ${errData.detail || response.statusText || "알 수 없는 오류"}`);
       }
 
       const data = await response.json();
@@ -198,7 +200,8 @@ export default function SoMaBiPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`배포 처리 실패: ${response.statusText}`);
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(`배포 처리 실패 (${response.status}): ${errData.detail || response.statusText || "알 수 없는 오류"}`);
       }
 
       const data = await response.json();
