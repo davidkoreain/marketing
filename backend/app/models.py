@@ -13,6 +13,10 @@ class User(Base):
     openai_api_key = Column(String, nullable=True)
     gemini_api_key = Column(String, nullable=True)
 
+    # AI 모델 선택 (글: openai/gemini, 이미지: openai/gemini)
+    text_model = Column(String, nullable=True, default="gemini")
+    image_model = Column(String, nullable=True, default="openai")
+
     # 인스타그램 연동
     instagram_access_token = Column(String, nullable=True)
     instagram_account_id = Column(String, nullable=True)

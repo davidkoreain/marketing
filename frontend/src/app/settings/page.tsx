@@ -9,6 +9,8 @@ interface Settings {
   email: string;
   openai_api_key_masked: string | null;
   gemini_api_key_masked: string | null;
+  text_model: string;
+  image_model: string;
   instagram_access_token_masked: string | null;
   instagram_account_id: string;
   kakao_rest_api_key_masked: string | null;
@@ -51,6 +53,8 @@ export default function SettingsPage() {
 
   const [openaiKey, setOpenaiKey] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
+  const [textModel, setTextModel] = useState("gemini");
+  const [imageModel, setImageModel] = useState("openai");
   const [igToken, setIgToken] = useState("");
   const [igAccountId, setIgAccountId] = useState("");
   const [kakaoKey, setKakaoKey] = useState("");
@@ -65,6 +69,8 @@ export default function SettingsPage() {
       .then((r) => r.json())
       .then((data) => {
         setSettings(data);
+        setTextModel(data.text_model || "gemini");
+        setImageModel(data.image_model || "openai");
         setIgAccountId(data.instagram_account_id || "");
         setKakaoChannelId(data.kakao_channel_id || "");
       })
@@ -80,6 +86,8 @@ export default function SettingsPage() {
     const body: Record<string, string> = {};
     if (openaiKey) body.openai_api_key = openaiKey;
     if (geminiKey) body.gemini_api_key = geminiKey;
+    body.text_model = textModel;
+    body.image_model = imageModel;
     if (igToken) body.instagram_access_token = igToken;
     if (igAccountId !== undefined) body.instagram_account_id = igAccountId;
     if (kakaoKey) body.kakao_rest_api_key = kakaoKey;
@@ -163,6 +171,75 @@ export default function SettingsPage() {
               <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.4rem" }}>현재: {settings.gemini_api_key_masked}</p>
             )}
             <input type="password" className="form-input" placeholder="AIzaSy..." value={geminiKey} onChange={(e) => setGeminiKey(e.target.value)} autoComplete="off" />
+          </div>
+        </div>
+
+        {/* AI 모델 선택 */}
+        <div className="glass-card" style={{ padding: "1.5rem" }}>
+          <SectionTitle>⚙️ AI 모델 선택</SectionTitle>
+          <p className="subheading" style={{ fontSize: "0.8rem", marginBottom: "1.25rem" }}>
+            각 단계에서 사용할 AI 모델을 선택하세요. 선택한 모델의 API 키가 위에 등록되어 있어야 합니다.
+          </p>
+
+          {/* 글 작성 모델 */}
+          <div className="form-group">
+            <label className="form-label">✍️ 홍보글 작성 모델</label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+              {[
+                { value: "gemini", label: "Google Gemini", desc: "Gemini 1.5 Flash · 무료 티어 지원", badge: "추천" },
+                { value: "openai", label: "OpenAI GPT", desc: "GPT-4o · 유료 크레딧 필요", badge: "" },
+              ].map((opt) => (
+                <label key={opt.value} style={{
+                  display: "flex", flexDirection: "column", gap: "0.3rem",
+                  padding: "0.85rem", borderRadius: "10px", cursor: "pointer",
+                  border: textModel === opt.value ? "2px solid var(--color-primary)" : "1px solid var(--border-color)",
+                  background: textModel === opt.value ? "rgba(99,102,241,0.1)" : "rgba(255,255,255,0.02)",
+                  transition: "all 0.15s",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <input type="radio" name="text_model" value={opt.value} checked={textModel === opt.value} onChange={() => setTextModel(opt.value)} style={{ accentColor: "var(--color-primary)" }} />
+                    <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{opt.label}</span>
+                    {opt.badge && <span style={{ fontSize: "0.65rem", background: "rgba(16,185,129,0.2)", color: "var(--color-success)", padding: "1px 6px", borderRadius: "999px", fontWeight: 700 }}>{opt.badge}</span>}
+                  </div>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", paddingLeft: "1.4rem" }}>{opt.desc}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* 이미지 생성 모델 */}
+          <div className="form-group">
+            <label className="form-label">🎨 이미지 생성 모델</label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+              {[
+                { value: "openai", label: "OpenAI DALL-E 3", desc: "고품질 이미지 · 유료 크레딧 필요", badge: "고품질" },
+                { value: "gemini", label: "Google Imagen 3", desc: "Gemini API 키 사용 · 베타", badge: "베타" },
+              ].map((opt) => (
+                <label key={opt.value} style={{
+                  display: "flex", flexDirection: "column", gap: "0.3rem",
+                  padding: "0.85rem", borderRadius: "10px", cursor: "pointer",
+                  border: imageModel === opt.value ? "2px solid var(--color-secondary)" : "1px solid var(--border-color)",
+                  background: imageModel === opt.value ? "rgba(168,85,247,0.1)" : "rgba(255,255,255,0.02)",
+                  transition: "all 0.15s",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <input type="radio" name="image_model" value={opt.value} checked={imageModel === opt.value} onChange={() => setImageModel(opt.value)} style={{ accentColor: "var(--color-secondary)" }} />
+                    <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{opt.label}</span>
+                    {opt.badge && <span style={{ fontSize: "0.65rem", background: opt.value === "openai" ? "rgba(99,102,241,0.2)" : "rgba(245,158,11,0.2)", color: opt.value === "openai" ? "var(--color-primary)" : "#f59e0b", padding: "1px 6px", borderRadius: "999px", fontWeight: 700 }}>{opt.badge}</span>}
+                  </div>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", paddingLeft: "1.4rem" }}>{opt.desc}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* 영상 생성 모델 */}
+          <div className="form-group">
+            <label className="form-label">🎬 영상 생성 모델</label>
+            <div style={{ padding: "0.85rem", borderRadius: "10px", border: "1px solid var(--border-color)", background: "rgba(255,255,255,0.02)" }}>
+              <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>🚧 영상 생성 모델 연동 준비 중 (Sora, Veo 3 등)</p>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>현재는 대본 작성 후 Mock 영상으로 미리보기를 제공합니다.</p>
+            </div>
           </div>
         </div>
 
