@@ -241,32 +241,33 @@ export default function SettingsPage() {
           {/* 영상 생성 모델 */}
           <div className="form-group">
             <label className="form-label">🎬 영상 생성 모델</label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               {[
-                { value: "pollinations", label: "Pollinations.ai", desc: "API 키 불필요 · Flux 영상 모델", badge: "무료 추천" },
-                { value: "runway", label: "Runway Gen-3", desc: "고품질 AI 영상 · 연동 준비 중", badge: "유료 (준비 중)" },
+                { value: "pollinations", label: "이미지 기반 프리뷰", desc: "API 불필요 · Ken Burns 애니메이션 · 다운로드 가능", badge: "무료 추천", free: true, disabled: false },
+                { value: "veo3", label: "Veo 3 (Google)", desc: "Gemini API 필요 · 고품질 AI 영상 8초 · Google AI Ultra 플랜", badge: "준비 중", free: false, disabled: true },
+                { value: "runway", label: "Runway Gen-3", desc: "Runway API 키 필요 · 고품질 AI 영상 · 연동 예정", badge: "준비 중", free: false, disabled: true },
               ].map((opt) => (
                 <label key={opt.value} style={{
                   display: "flex", flexDirection: "column", gap: "0.3rem",
-                  padding: "0.85rem", borderRadius: "10px", cursor: opt.value === "runway" ? "not-allowed" : "pointer",
+                  padding: "0.85rem", borderRadius: "10px", cursor: opt.disabled ? "not-allowed" : "pointer",
                   border: videoModel === opt.value ? "2px solid var(--color-accent)" : "1px solid var(--border-color)",
                   background: videoModel === opt.value ? "rgba(6,182,212,0.08)" : "rgba(255,255,255,0.02)",
-                  opacity: opt.value === "runway" ? 0.6 : 1,
+                  opacity: opt.disabled ? 0.6 : 1,
                   transition: "all 0.15s",
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     <input
                       type="radio" name="video_model" value={opt.value}
                       checked={videoModel === opt.value}
-                      onChange={() => opt.value !== "runway" && setVideoModel(opt.value)}
-                      disabled={opt.value === "runway"}
+                      onChange={() => !opt.disabled && setVideoModel(opt.value)}
+                      disabled={opt.disabled}
                       style={{ accentColor: "var(--color-accent)" }}
                     />
                     <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{opt.label}</span>
                     <span style={{
                       fontSize: "0.65rem",
-                      background: opt.value === "pollinations" ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.15)",
-                      color: opt.value === "pollinations" ? "var(--color-success)" : "var(--color-error)",
+                      background: opt.free ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.15)",
+                      color: opt.free ? "var(--color-success)" : "var(--color-error)",
                       padding: "1px 6px", borderRadius: "999px", fontWeight: 700,
                     }}>{opt.badge}</span>
                   </div>

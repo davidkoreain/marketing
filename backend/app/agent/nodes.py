@@ -252,28 +252,46 @@ def generate_video_node(state: AgentState) -> dict:
             )
 
     # 영상 생성
-    import urllib.parse, random as _random
     video_model = state.get("video_model") or "pollinations"
-    product_name_v = state.get("product_name", "product")
-    tone_v = state.get("tone_and_manner", "professional")
-    video_url = ""
+    image_url_for_video = state.get("generated_image_url") or ""
 
-    if video_model == "pollinations":
-        _video_prompt = (
-            f"cinematic short advertisement video, {product_name_v}, "
-            f"{tone_v} style, smooth motion, warm lighting, professional quality, no text overlay"
-        )
-        _encoded_v = urllib.parse.quote(_video_prompt[:300])
-        _seed_v = _random.randint(10000, 99999)
-        # HEAD 체크 없이 URL 그대로 반환 — 브라우저가 직접 로드 (image.pollinations.ai와 동일 방식)
-        video_url = f"https://video.pollinations.ai/prompt/{_encoded_v}?nologo=true&seed={_seed_v}"
-
-    elif video_model == "runway":
-        # Runway ML Gen-3 Alpha (API 키 필요) — 추후 연동 예정
-        video_url = state.get("generated_image_url") or ""
-        video_model_used = "runway_pending"
+    if video_model == "veo3":
+        gemini_key = state.get("gemini_api_key")
+        if gemini_key:
+            try:
+                import google.genai as _genai
+                _client = _genai.Client(api_key=gemini_key)
+                _veo_prompt = (
+                    f"cinematic 8-second vertical advertisement video for {state.get('product_name','product')}, "
+                    f"{state.get('tone_and_manner','professional')} style, warm lighting, smooth motion, no text overlay"
+                )
+                _op = _client.models.generate_video(
+                    model="veo-3.0-generate-preview",
+                    prompt=_veo_prompt,
+                    config={"aspect_ratio": "9:16"},
+                )
+                import time as _time
+                _waited = 0
+                while not _op.done and _waited < 150:
+                    _time.sleep(15)
+                    _waited += 15
+                    _op = _client.operations.get(_op)
+                if _op.done and _op.response and _op.response.generated_videos:
+                    _vbytes = _op.response.generated_videos[0].video.video_bytes
+                    if _vbytes:
+                        import base64 as _b64
+                        video_url = "data:video/mp4;base64," + _b64.b64encode(_vbytes).decode()
+                    else:
+                        video_url = image_url_for_video
+                else:
+                    video_url = image_url_for_video
+            except Exception:
+                video_url = image_url_for_video
+        else:
+            video_url = image_url_for_video
     else:
-        video_url = state.get("generated_image_url") or ""
+        # pollinations / runway(준비중) / 기타: 이미지 URL 반환 → 프론트에서 Ken Burns 표시
+        video_url = image_url_for_video
 
     return {
         "generated_video_script": video_script,

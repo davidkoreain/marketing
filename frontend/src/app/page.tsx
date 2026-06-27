@@ -67,6 +67,7 @@ export default function SoMaBiPage() {
   const [maxReachedStage, setMaxReachedStage] = useState<typeof currentStage>("input");
   const [videoError, setVideoError] = useState(false);
   const [videoLoading, setVideoLoading] = useState(true);
+  const [downloadingVideo, setDownloadingVideo] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
 
   // 단계 전진 (뒤로 가기와 달리 maxReachedStage도 갱신)
@@ -76,6 +77,64 @@ export default function SoMaBiPage() {
     setMaxReachedStage((prev) => {
       return STAGE_ORDER.indexOf(stage) > STAGE_ORDER.indexOf(prev) ? stage : prev;
     });
+  }
+
+  // Canvas로 Ken Burns 영상 생성 후 다운로드
+  async function downloadKenBurnsVideo() {
+    if (!generatedImageUrl) return;
+    setDownloadingVideo(true);
+    try {
+      const W = 720, H = 1280;
+      const canvas = document.createElement("canvas");
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext("2d")!;
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; img.src = generatedImageUrl!; });
+      const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9" : "video/webm";
+      const recorder = new MediaRecorder(canvas.captureStream(30), { mimeType, videoBitsPerSecond: 3_000_000 });
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      const duration = 12_000;
+      const startTime = performance.now();
+      recorder.start(200);
+      await new Promise<void>((res) => {
+        recorder.onstop = () => res();
+        const caption = (generatedPost || "").split("\n")[0].substring(0, 28);
+        function frame() {
+          const p = Math.min((performance.now() - startTime) / duration, 1);
+          const scale = 1 + Math.sin(p * Math.PI) * 0.08;
+          const tx = Math.sin(p * Math.PI * 1.5) * 25;
+          const ty = -Math.cos(p * Math.PI) * 18;
+          ctx.clearRect(0, 0, W, H);
+          ctx.save();
+          ctx.translate(W / 2 + tx, H / 2 + ty);
+          ctx.scale(scale, scale);
+          ctx.drawImage(img, -W / 2, -W / 2, W, W);
+          ctx.restore();
+          ctx.fillStyle = "rgba(0,0,0,0.5)";
+          ctx.fillRect(16, H - 110, W - 32, 90);
+          ctx.fillStyle = "white";
+          ctx.font = "bold 30px sans-serif";
+          ctx.fillText("@somabi_marketing", 30, H - 70);
+          ctx.font = "22px sans-serif";
+          ctx.fillStyle = "#ddd";
+          ctx.fillText(caption, 30, H - 32);
+          if (p < 1) { requestAnimationFrame(frame); } else { recorder.stop(); }
+        }
+        requestAnimationFrame(frame);
+      });
+      const blob = new Blob(chunks, { type: "video/webm" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `somabi_shorts_${Date.now()}.webm`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("영상 다운로드 실패: 브라우저 보안 정책으로 이미지 접근이 차단되었습니다. 스크린샷을 이용하세요.");
+    } finally {
+      setDownloadingVideo(false);
+    }
   }
 
   // Form input change handler
@@ -419,8 +478,8 @@ export default function SoMaBiPage() {
       isPaid = activeImageModel === "openai";
       label = isPaid ? "DALL-E 3 · 유료" : "Gemini / Flux AI · 무료";
     } else {
-      isPaid = activeVideoModel === "runway";
-      label = isPaid ? "Runway Gen-3 · 유료" : "Pollinations.ai · 무료";
+      isPaid = activeVideoModel === "runway" || activeVideoModel === "veo3";
+      label = activeVideoModel === "veo3" ? "Veo 3 · 유료" : isPaid ? "Runway Gen-3 · 유료" : "이미지 프리뷰 · 무료";
     }
 
     return (
@@ -950,58 +1009,47 @@ export default function SoMaBiPage() {
                   border: "1px solid var(--border-color)"
                 }}
               >
-                {/* 실제 영상 (Pollinations.ai) — 로드 실패 시 이미지 폴백 */}
-                {generatedVideoUrl && !videoError && (
-                  <>
-                    <video
-                      key={generatedVideoUrl}
-                      src={generatedVideoUrl}
-                      controls
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      style={{ width: "100%", height: "100%", objectFit: "cover", display: videoLoading ? "none" : "block" }}
-                      onLoadedData={() => setVideoLoading(false)}
-                      onError={() => setVideoError(true)}
-                    />
-                    {/* 영상 로딩 중 스피너 */}
-                    {videoLoading && (
-                      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.75rem", background: "rgba(0,0,0,0.7)" }}>
-                        <div className="spinner" style={{ width: "2rem", height: "2rem", borderWidth: "3px" }} />
-                        <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textAlign: "center" }}>AI 영상 생성 중...<br /><span style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>30초~2분 소요될 수 있습니다</span></p>
+                {(() => {
+                  // data:video/ 로 시작하면 실제 AI 영상 (Veo3 등)
+                  const isRealVideo = generatedVideoUrl?.startsWith("data:video/");
+                  if (isRealVideo && !videoError) {
+                    return (
+                      <>
+                        <video
+                          key={generatedVideoUrl}
+                          src={generatedVideoUrl!}
+                          controls autoPlay loop muted playsInline
+                          style={{ width: "100%", height: "100%", objectFit: "cover", display: videoLoading ? "none" : "block" }}
+                          onLoadedData={() => setVideoLoading(false)}
+                          onError={() => setVideoError(true)}
+                        />
+                        {videoLoading && (
+                          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.75rem", background: "rgba(0,0,0,0.7)" }}>
+                            <div className="spinner" style={{ width: "2rem", height: "2rem", borderWidth: "3px" }} />
+                            <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textAlign: "center" }}>AI 영상 로딩 중...<br /><span style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>잠시만 기다려주세요</span></p>
+                          </div>
+                        )}
+                      </>
+                    );
+                  }
+                  // 그 외(이미지 URL / 없음): Ken Burns 이미지 프리뷰
+                  return (
+                    <div style={{ width: "100%", height: "100%", overflow: "hidden", position: "relative" }}>
+                      {generatedImageUrl ? (
+                        <img src={generatedImageUrl} alt="영상 프리뷰" style={{ width: "100%", height: "100%", objectFit: "cover", animation: "kenBurns 12s ease-in-out infinite", transformOrigin: "center center" }} />
+                      ) : (
+                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <div className="spinner" />
+                        </div>
+                      )}
+                      <div style={{ position: "absolute", top: "0.5rem", left: "0.5rem", zIndex: 10 }}>
+                        <span style={{ fontSize: "0.6rem", background: "rgba(0,0,0,0.6)", color: "#ccc", padding: "0.2rem 0.5rem", borderRadius: "4px" }}>
+                          📸 이미지 기반 프리뷰
+                        </span>
                       </div>
-                    )}
-                  </>
-                )}
-
-                {/* 폴백: 홍보 이미지 + Ken Burns 애니메이션 (영상 로드 실패 시) */}
-                {(videoError || !generatedVideoUrl) && (
-                  <div style={{ width: "100%", height: "100%", overflow: "hidden", position: "relative" }}>
-                    {generatedImageUrl ? (
-                      <img
-                        src={generatedImageUrl}
-                        alt="영상 프리뷰"
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                          animation: "kenBurns 12s ease-in-out infinite",
-                          transformOrigin: "center center",
-                        }}
-                      />
-                    ) : (
-                      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                        <div className="spinner" />
-                      </div>
-                    )}
-                    <div style={{ position: "absolute", top: "0.5rem", left: "0.5rem", right: "0.5rem", zIndex: 10 }}>
-                      <span style={{ fontSize: "0.6rem", background: "rgba(239,68,68,0.6)", color: "#fff", padding: "0.2rem 0.5rem", borderRadius: "4px" }}>
-                        ⚠️ 영상 로드 실패 · 이미지로 대체
-                      </span>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* 하단 SNS 오버레이 */}
                 <div style={{ position: "absolute", bottom: "1rem", left: "1rem", right: "1rem", pointerEvents: "none", zIndex: 10, background: "rgba(0,0,0,0.45)", padding: "0.5rem", borderRadius: "0.5rem", backdropFilter: "blur(4px)" }}>
@@ -1010,13 +1058,21 @@ export default function SoMaBiPage() {
                 </div>
               </div>
 
-              {/* 영상 생성 안내 */}
+              {/* 영상 다운로드 + 안내 */}
               <div className="glass-card" style={{ background: "rgba(6,182,212,0.06)", borderColor: "rgba(6,182,212,0.2)", padding: "0.85rem 1rem" }}>
-                <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--color-accent)", marginBottom: "0.3rem" }}>🎬 영상 생성 안내</p>
-                <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                  현재 무료 AI 영상(Pollinations.ai)을 시도합니다. 로딩에 30초~2분 소요될 수 있습니다.
-                  영상이 표시되지 않을 경우 아래 대본을 CapCut, Canva, 클립챔피언 등에서 활용하세요.
+                <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--color-accent)", marginBottom: "0.3rem" }}>🎬 영상 저장 안내</p>
+                <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: "0.75rem" }}>
+                  홍보 이미지로 Ken Burns 영상을 직접 생성해 다운로드할 수 있습니다 (WebM · 12초).
+                  또는 아래 대본을 CapCut, Canva, 클립챔피언 등에서 활용하세요.
                 </p>
+                <button
+                  type="button"
+                  onClick={downloadKenBurnsVideo}
+                  disabled={downloadingVideo || !generatedImageUrl}
+                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", fontWeight: 600, color: "var(--color-accent)", background: "rgba(6,182,212,0.15)", border: "1px solid rgba(6,182,212,0.4)", borderRadius: "8px", padding: "0.45rem 0.9rem", cursor: "pointer", opacity: downloadingVideo || !generatedImageUrl ? 0.5 : 1 }}
+                >
+                  {downloadingVideo ? <><div className="spinner" style={{ width: "0.9rem", height: "0.9rem", borderWidth: "2px" }} /> 생성 중...</> : "📥 영상 다운로드 (WebM)"}
+                </button>
               </div>
 
               {/* 대본 표시 */}
