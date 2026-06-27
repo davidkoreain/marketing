@@ -137,13 +137,9 @@ export default function SettingsPage() {
           <h1 className="gradient-text" style={{ fontSize: "1.25rem", fontWeight: 700 }}>설정</h1>
           <p className="subheading" style={{ fontSize: "0.8rem" }}>{settings?.email}</p>
         </div>
-        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-          <Link href="/" style={{ color: "var(--color-accent)", fontSize: "0.875rem", textDecoration: "none", whiteSpace: "nowrap" }}>
-            ← 메인으로
-          </Link>
-          <button onClick={handleLogout} className="btn" style={{ padding: "0.4rem 0.9rem", fontSize: "0.8rem", background: "rgba(239,68,68,0.15)", color: "var(--color-error)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "8px" }}>
-            로그아웃
-          </button>
+        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexShrink: 0, flexWrap: "nowrap" }}>
+          <Link href="/" style={{ color: "var(--color-accent)", fontSize: "0.875rem", textDecoration: "none", whiteSpace: "nowrap" }}>← 메인으로</Link>
+          <button onClick={handleLogout} className="btn" style={{ padding: "0.4rem 0.9rem", fontSize: "0.8rem", background: "rgba(239,68,68,0.15)", color: "var(--color-error)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "8px", whiteSpace: "nowrap" }}>로그아웃</button>
         </div>
       </header>
 
