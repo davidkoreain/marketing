@@ -61,6 +61,8 @@ export default function SoMaBiPage() {
   const [rejectCount, setRejectCount] = useState(0);
   const [savedSession, setSavedSession] = useState<any>(null);
   const [saveMsg, setSaveMsg] = useState("");
+  const [activeTextModel, setActiveTextModel] = useState<string>("gemini");
+  const [activeImageModel, setActiveImageModel] = useState<string>("gemini");
 
   // Form input change handler
   const handleInputChange = (
@@ -96,10 +98,12 @@ export default function SoMaBiPage() {
 
       const data = await response.json();
       setThreadId(data.thread_id);
-      
+
       const stateValues = data.state;
       setGeneratedPost(stateValues.generated_post);
       setCurrentAgent(stateValues.current_agent || "카피라이터 에이전트");
+      setActiveTextModel(stateValues.text_model || "gemini");
+      setActiveImageModel(stateValues.image_model || "gemini");
       setCurrentStage("post");
       // 자동 저장 (로컬 + 서버)
       localStorage.setItem("somabi_session", JSON.stringify({
@@ -371,6 +375,38 @@ export default function SoMaBiPage() {
     setSavedSession(null);
   }
 
+  // 모델 배지 컴포넌트
+  function ModelBadge({ type }: { type: "text" | "image" | "video" }) {
+    let label: string;
+    let isPaid: boolean;
+
+    if (type === "text") {
+      isPaid = activeTextModel === "openai";
+      label = isPaid ? "GPT-4o · 유료" : "Gemini 2.5 Flash · 무료";
+    } else if (type === "image") {
+      isPaid = activeImageModel === "openai";
+      label = isPaid ? "DALL-E 3 · 유료" : "Gemini / Flux AI · 무료";
+    } else {
+      isPaid = false;
+      label = "스크립트 AI · 무료";
+    }
+
+    return (
+      <span style={{
+        fontSize: "0.7rem",
+        padding: "0.22rem 0.55rem",
+        borderRadius: "5px",
+        fontWeight: 600,
+        background: isPaid ? "rgba(239,68,68,0.12)" : "rgba(16,185,129,0.12)",
+        color: isPaid ? "#f87171" : "#34d399",
+        border: `1px solid ${isPaid ? "rgba(239,68,68,0.3)" : "rgba(16,185,129,0.3)"}`,
+        whiteSpace: "nowrap",
+      }}>
+        {isPaid ? "🔴" : "🟢"} {label}
+      </span>
+    );
+  }
+
   // 저장 버튼 컴포넌트
   const SaveButton = () => (
     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -608,6 +644,7 @@ export default function SoMaBiPage() {
                 ✍️ [1단계] SNS 홍보글 검토
               </h2>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <ModelBadge type="text" />
                 <SaveButton />
                 <span className="subheading" style={{ fontSize: "0.75rem", background: "rgba(99, 102, 241, 0.15)", color: "var(--color-primary)", padding: "0.25rem 0.5rem", borderRadius: "0.25rem", fontWeight: 700 }}>
                   🤖 카피라이터 에이전트
@@ -695,6 +732,7 @@ export default function SoMaBiPage() {
                 🎨 [2단계] 홍보 이미지 검토
               </h2>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <ModelBadge type="image" />
                 <SaveButton />
                 <span className="subheading" style={{ fontSize: "0.75rem", background: "rgba(168, 85, 247, 0.15)", color: "var(--color-secondary)", padding: "0.25rem 0.5rem", borderRadius: "0.25rem", fontWeight: 700 }}>
                   🤖 디자이너 에이전트
@@ -795,6 +833,7 @@ export default function SoMaBiPage() {
                 🎬 [3단계] 쇼츠 영상 검토
               </h2>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <ModelBadge type="video" />
                 <SaveButton />
                 <span className="subheading" style={{ fontSize: "0.75rem", background: "rgba(6, 182, 212, 0.15)", color: "var(--color-accent)", padding: "0.25rem 0.5rem", borderRadius: "0.25rem", fontWeight: 700 }}>
                   🤖 영상 편집자 에이전트
