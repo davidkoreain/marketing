@@ -94,7 +94,10 @@ def start_session(
         "openai_api_key": current_user.openai_api_key,
         "gemini_api_key": current_user.gemini_api_key,
         "text_model": current_user.text_model or "gemini",
-        "image_model": current_user.image_model or "openai",
+        # 저장된 선택 없으면: gemini 키 있으면 gemini, 아니면 openai
+        "image_model": current_user.image_model or (
+            "gemini" if current_user.gemini_api_key else "openai"
+        ),
     }
 
     try:

@@ -142,6 +142,7 @@ def generate_image_node(state: AgentState) -> dict:
     # 2. 이미지 생성
     MOCK_IMAGE_URL = "https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=1024&auto=format&fit=crop"
     image_url = MOCK_IMAGE_URL
+    image_error = None
 
     if image_model == "openai":
         openai_key = state.get("openai_api_key") or OPENAI_API_KEY
@@ -157,26 +158,37 @@ def generate_image_node(state: AgentState) -> dict:
                     n=1,
                 )
                 image_url = resp.data[0].url
-            except Exception:
-                image_url = MOCK_IMAGE_URL
+            except Exception as e:
+                image_error = f"DALL-E 오류: {e}"
+        else:
+            image_error = "OpenAI API 키가 없습니다. 설정에서 입력하거나 Gemini 이미지 모델로 변경해주세요."
 
     elif image_model == "gemini":
         gemini_key = state.get("gemini_api_key") or GEMINI_API_KEY
         if gemini_key and not gemini_key.startswith("your_gemini"):
             try:
                 from google import genai as google_genai
+                from google.genai import types as genai_types
                 client = google_genai.Client(api_key=gemini_key)
                 resp = client.models.generate_images(
-                    model="imagen-3.0-generate-002",
+                    model="imagen-3.0-generate-001",
                     prompt=image_prompt,
+                    config=genai_types.GenerateImagesConfig(number_of_images=1),
                 )
                 if resp.generated_images:
                     import base64
                     img_bytes = resp.generated_images[0].image.image_bytes
                     b64 = base64.b64encode(img_bytes).decode("utf-8")
                     image_url = f"data:image/png;base64,{b64}"
-            except Exception:
-                image_url = MOCK_IMAGE_URL
+                else:
+                    image_error = "Imagen: 이미지가 생성되지 않았습니다."
+            except Exception as e:
+                image_error = f"Imagen 오류: {e}"
+        else:
+            image_error = "Gemini API 키가 없습니다."
+
+    if image_error:
+        image_prompt = f"{image_prompt}\n\n[이미지 생성 실패: {image_error}]"
 
     return {
         "generated_image_prompt": image_prompt,
