@@ -64,6 +64,7 @@ export default function SoMaBiPage() {
   const [activeTextModel, setActiveTextModel] = useState<string>("gemini");
   const [activeImageModel, setActiveImageModel] = useState<string>("gemini");
   const [maxReachedStage, setMaxReachedStage] = useState<typeof currentStage>("input");
+  const [videoError, setVideoError] = useState(false);
 
   // 단계 전진 (뒤로 가기와 달리 maxReachedStage도 갱신)
   const STAGE_ORDER = ["input", "post", "image", "video", "publish", "done"] as const;
@@ -192,6 +193,9 @@ export default function SoMaBiPage() {
       setGeneratedImagePrompt(stateValues.generated_image_prompt);
       setGeneratedImageUrl(stateValues.generated_image_url);
       setGeneratedVideoScript(stateValues.generated_video_script);
+      if (stateValues.generated_video_url !== generatedVideoUrl) {
+        setVideoError(false); // 새 URL이면 에러 상태 초기화
+      }
       setGeneratedVideoUrl(stateValues.generated_video_url);
       setCurrentAgent(stateValues.current_agent || null);
 
@@ -236,6 +240,7 @@ export default function SoMaBiPage() {
         if (currentStage === "post" && nextSteps.includes("image_review")) {
           advanceStage("image");
         } else if (currentStage === "image" && nextSteps.includes("video_review")) {
+          setVideoError(false);
           advanceStage("video");
         } else if (currentStage === "video" && data.is_finished) {
           advanceStage("publish");
@@ -875,40 +880,81 @@ export default function SoMaBiPage() {
 
             {/* 비디오 및 대본 영역 */}
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.5rem" }}>
-              {/* 비디오 플레이어 Mockup */}
-              <div 
-                className="glass-card" 
-                style={{ 
-                  padding: 0, 
-                  overflow: "hidden", 
-                  background: "#000", 
-                  aspectRatio: "9 / 16", 
-                  maxWidth: "280px", 
+              {/* 비디오 플레이어 */}
+              <div
+                className="glass-card"
+                style={{
+                  padding: 0,
+                  overflow: "hidden",
+                  background: "#000",
+                  aspectRatio: "9 / 16",
+                  maxWidth: "280px",
                   margin: "0 auto",
                   position: "relative",
                   border: "1px solid var(--border-color)"
                 }}
               >
-                {generatedVideoUrl ? (
-                  <video 
-                    src={generatedVideoUrl} 
-                    controls 
-                    autoPlay 
-                    loop 
-                    muted 
-                    playsInline
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-                ) : (
-                  <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem" }}>
-                    <div className="spinner" />
-                    <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>동영상을 합성하는 중...</p>
+                {/* 실제 영상 (Pollinations.ai) — 로드 실패 시 이미지 폴백 */}
+                {generatedVideoUrl && !videoError && !generatedVideoUrl.startsWith("data:") && (
+                  generatedVideoUrl.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? null : (
+                    <video
+                      key={generatedVideoUrl}
+                      src={generatedVideoUrl}
+                      controls
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                      onError={() => setVideoError(true)}
+                    />
+                  )
+                )}
+
+                {/* 폴백: 홍보 이미지 + Ken Burns 애니메이션 */}
+                {(videoError || !generatedVideoUrl || generatedVideoUrl.startsWith("data:") || generatedVideoUrl.match(/\.(jpg|jpeg|png|webp|gif)$/i)) && (
+                  <div style={{ width: "100%", height: "100%", overflow: "hidden", position: "relative" }}>
+                    {generatedImageUrl ? (
+                      <img
+                        src={generatedImageUrl}
+                        alt="영상 프리뷰"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          animation: "kenBurns 12s ease-in-out infinite",
+                          transformOrigin: "center center",
+                        }}
+                      />
+                    ) : (
+                      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                        <div className="spinner" />
+                        <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>영상 준비 중...</p>
+                      </div>
+                    )}
+                    {/* 이미지 폴백 안내 */}
+                    <div style={{ position: "absolute", top: "0.5rem", left: "0.5rem", right: "0.5rem", zIndex: 10 }}>
+                      <span style={{ fontSize: "0.6rem", background: "rgba(0,0,0,0.65)", color: "#aaa", padding: "0.2rem 0.5rem", borderRadius: "4px" }}>
+                        📸 이미지 기반 프리뷰 (AI 영상 생성 준비 중)
+                      </span>
+                    </div>
                   </div>
                 )}
-                <div style={{ position: "absolute", bottom: "1rem", left: "1rem", right: "1rem", pointerEvents: "none", zIndex: 10, background: "rgba(0,0,0,0.4)", padding: "0.5rem", borderRadius: "0.5rem" }}>
+
+                {/* 하단 SNS 오버레이 */}
+                <div style={{ position: "absolute", bottom: "1rem", left: "1rem", right: "1rem", pointerEvents: "none", zIndex: 10, background: "rgba(0,0,0,0.45)", padding: "0.5rem", borderRadius: "0.5rem", backdropFilter: "blur(4px)" }}>
                   <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "white" }}>@somabi_marketing</p>
-                  <p style={{ fontSize: "0.75rem", color: "#ddd", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{generatedPost}</p>
+                  <p style={{ fontSize: "0.7rem", color: "#ddd", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{generatedPost?.split("\n")[0]}</p>
                 </div>
+              </div>
+
+              {/* 영상 생성 안내 */}
+              <div className="glass-card" style={{ background: "rgba(6,182,212,0.06)", borderColor: "rgba(6,182,212,0.2)", padding: "0.85rem 1rem" }}>
+                <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--color-accent)", marginBottom: "0.3rem" }}>🎬 영상 생성 안내</p>
+                <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                  현재 무료 AI 영상(Pollinations.ai)을 시도합니다. 로딩에 30초~2분 소요될 수 있습니다.
+                  영상이 표시되지 않을 경우 아래 대본을 CapCut, Canva, 클립챔피언 등에서 활용하세요.
+                </p>
               </div>
 
               {/* 대본 표시 */}

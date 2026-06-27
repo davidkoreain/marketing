@@ -251,7 +251,26 @@ def generate_video_node(state: AgentState) -> dict:
                 f"- 10~15s: 매장 약도 혹은 브랜드 로고 노출. 자막: '행복한 하루의 시작, 지금 프로필 링크 클릭!'"
             )
 
-    video_url = "https://assets.mixkit.co/videos/preview/mixkit-pouring-hot-coffee-into-a-cup-42280-large.mp4"
+    # 영상 생성 — Pollinations.ai (무료, API 키 불필요)
+    import urllib.parse, random as _random
+    product_name_v = state.get("product_name", "product")
+    tone_v = state.get("tone_and_manner", "professional")
+    _video_prompt = (
+        f"cinematic short advertisement video, {product_name_v}, "
+        f"{tone_v} style, smooth motion, warm lighting, professional quality, no text overlay"
+    )
+    _encoded_v = urllib.parse.quote(_video_prompt[:300])
+    _seed_v = _random.randint(10000, 99999)
+    video_url = f"https://video.pollinations.ai/prompt/{_encoded_v}?nologo=true&seed={_seed_v}"
+
+    # 영상 로드 가능 여부 빠르게 확인 (실패 시 이미지 URL로 폴백)
+    try:
+        import requests as _req
+        _r = _req.head(video_url, timeout=6, allow_redirects=True)
+        if not (_r.ok and "video" in _r.headers.get("Content-Type", "")):
+            video_url = state.get("generated_image_url") or video_url
+    except Exception:
+        video_url = state.get("generated_image_url") or video_url
 
     return {
         "generated_video_script": video_script,
