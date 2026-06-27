@@ -101,7 +101,7 @@ export default function SoMaBiPage() {
       setGeneratedPost(stateValues.generated_post);
       setCurrentAgent(stateValues.current_agent || "카피라이터 에이전트");
       setCurrentStage("post");
-      // 자동 저장
+      // 자동 저장 (로컬 + 서버)
       localStorage.setItem("somabi_session", JSON.stringify({
         savedAt: new Date().toLocaleString("ko-KR"),
         currentStage: "post", threadId: data.thread_id, formData,
@@ -109,6 +109,18 @@ export default function SoMaBiPage() {
         generatedImagePrompt: null, generatedImageUrl: null,
         generatedVideoScript: null, generatedVideoUrl: null,
       }));
+      saveCampaignToServer({
+        thread_id: data.thread_id,
+        stage: "post",
+        product_name: formData.product_name,
+        product_desc: formData.product_desc,
+        keywords: formData.keywords,
+        target_audience: formData.target_audience,
+        tone_and_manner: formData.tone_and_manner,
+        generated_post: stateValues.generated_post,
+        text_model: stateValues.text_model,
+        image_model: stateValues.image_model,
+      });
     } catch (err: any) {
       setError(err.message || "세션을 시작하는 중 문제가 발생했습니다.");
     } finally {
@@ -172,7 +184,7 @@ export default function SoMaBiPage() {
       // Clear feedback input
       setFeedbackText("");
 
-      // 자동 저장
+      // 자동 저장 (로컬 + 서버)
       const nextStage = action === "approve"
         ? (currentStage === "post" && nextSteps.includes("image_review") ? "image"
           : currentStage === "image" && nextSteps.includes("video_review") ? "video"
@@ -188,6 +200,22 @@ export default function SoMaBiPage() {
         generatedVideoScript: stateValues.generated_video_script,
         generatedVideoUrl: stateValues.generated_video_url,
       }));
+      saveCampaignToServer({
+        thread_id: threadId,
+        stage: nextStage,
+        product_name: formData.product_name,
+        product_desc: formData.product_desc,
+        keywords: formData.keywords,
+        target_audience: formData.target_audience,
+        tone_and_manner: formData.tone_and_manner,
+        generated_post: stateValues.generated_post,
+        generated_image_prompt: stateValues.generated_image_prompt,
+        generated_image_url: stateValues.generated_image_url,
+        generated_video_script: stateValues.generated_video_script,
+        generated_video_url: stateValues.generated_video_url,
+        text_model: stateValues.text_model,
+        image_model: stateValues.image_model,
+      });
 
       if (action === "approve") {
         setRejectCount(0);
@@ -242,6 +270,13 @@ export default function SoMaBiPage() {
       setPublishResults(data.publish_results || {});
       setCurrentAgent("배포 에이전트");
       setCurrentStage("done");
+      // 최종 배포 결과를 서버에 저장
+      saveCampaignToServer({
+        thread_id: threadId,
+        stage: "done",
+        publish_channels: JSON.stringify(publishChannels),
+        publish_results: JSON.stringify(data.publish_results || {}),
+      });
     } catch (err: any) {
       setError(err.message || "배포 처리 중 문제가 발생했습니다.");
     } finally {
@@ -282,7 +317,20 @@ export default function SoMaBiPage() {
     setSavedSession(null);
   };
 
-  // 세션 저장
+  // 서버에 캠페인 저장 (upsert, thread_id 기준)
+  async function saveCampaignToServer(fields: Record<string, any>) {
+    try {
+      await fetch(`${API_BASE_URL}/api/campaigns`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
+        body: JSON.stringify(fields),
+      });
+    } catch {
+      // 서버 저장 실패는 조용히 처리 (로컬 저장은 항상 유지)
+    }
+  }
+
+  // 세션 저장 (로컬 + 서버 동시)
   function saveSession() {
     const data = {
       savedAt: new Date().toLocaleString("ko-KR"),
@@ -293,6 +341,21 @@ export default function SoMaBiPage() {
     localStorage.setItem("somabi_session", JSON.stringify(data));
     setSaveMsg("저장되었습니다!");
     setTimeout(() => setSaveMsg(""), 2000);
+    // 서버 동기화
+    saveCampaignToServer({
+      thread_id: threadId,
+      stage: currentStage,
+      product_name: formData.product_name,
+      product_desc: formData.product_desc,
+      keywords: formData.keywords,
+      target_audience: formData.target_audience,
+      tone_and_manner: formData.tone_and_manner,
+      generated_post: generatedPost,
+      generated_image_prompt: generatedImagePrompt,
+      generated_image_url: generatedImageUrl,
+      generated_video_script: generatedVideoScript,
+      generated_video_url: generatedVideoUrl,
+    });
   }
 
   // 세션 복원

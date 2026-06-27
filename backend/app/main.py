@@ -9,6 +9,7 @@ from app import models
 from app.auth import get_current_user
 from app.routers.auth_router import router as auth_router
 from app.routers.settings_router import router as settings_router
+from app.routers.campaigns_router import router as campaigns_router
 from app.agent.graph import app_graph
 from app.agent.nodes import publish_node
 from app.config import PORT
@@ -39,6 +40,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(settings_router)
+app.include_router(campaigns_router)
 
 
 class StartSessionRequest(BaseModel):
