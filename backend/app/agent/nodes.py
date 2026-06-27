@@ -265,18 +265,8 @@ def generate_video_node(state: AgentState) -> dict:
         )
         _encoded_v = urllib.parse.quote(_video_prompt[:300])
         _seed_v = _random.randint(10000, 99999)
-        _candidate = f"https://video.pollinations.ai/prompt/{_encoded_v}?nologo=true&seed={_seed_v}"
-        # HEAD 요청으로 실제 영상 반환 여부 확인
-        try:
-            import requests as _req
-            _r = _req.head(_candidate, timeout=8, allow_redirects=True)
-            if _r.ok and "video" in _r.headers.get("Content-Type", ""):
-                video_url = _candidate
-        except Exception:
-            pass
-        # 폴백: 홍보 이미지 URL (프론트에서 Ken Burns 애니메이션으로 표시)
-        if not video_url:
-            video_url = state.get("generated_image_url") or _candidate
+        # HEAD 체크 없이 URL 그대로 반환 — 브라우저가 직접 로드 (image.pollinations.ai와 동일 방식)
+        video_url = f"https://video.pollinations.ai/prompt/{_encoded_v}?nologo=true&seed={_seed_v}"
 
     elif video_model == "runway":
         # Runway ML Gen-3 Alpha (API 키 필요) — 추후 연동 예정

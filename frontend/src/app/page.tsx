@@ -66,6 +66,7 @@ export default function SoMaBiPage() {
   const [activeVideoModel, setActiveVideoModel] = useState<string>("pollinations");
   const [maxReachedStage, setMaxReachedStage] = useState<typeof currentStage>("input");
   const [videoError, setVideoError] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
 
   // 단계 전진 (뒤로 가기와 달리 maxReachedStage도 갱신)
@@ -203,6 +204,7 @@ export default function SoMaBiPage() {
       setGeneratedVideoScript(stateValues.generated_video_script);
       if (stateValues.generated_video_url !== generatedVideoUrl) {
         setVideoError(false);
+        setVideoLoading(true);
       }
       setGeneratedVideoUrl(stateValues.generated_video_url);
       if (stateValues.video_model) setActiveVideoModel(stateValues.video_model);
@@ -250,6 +252,7 @@ export default function SoMaBiPage() {
           advanceStage("image");
         } else if (currentStage === "image" && nextSteps.includes("video_review")) {
           setVideoError(false);
+          setVideoLoading(true);
           advanceStage("video");
         } else if (currentStage === "video" && data.is_finished) {
           advanceStage("publish");
@@ -948,8 +951,8 @@ export default function SoMaBiPage() {
                 }}
               >
                 {/* 실제 영상 (Pollinations.ai) — 로드 실패 시 이미지 폴백 */}
-                {generatedVideoUrl && !videoError && !generatedVideoUrl.startsWith("data:") && (
-                  generatedVideoUrl.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? null : (
+                {generatedVideoUrl && !videoError && (
+                  <>
                     <video
                       key={generatedVideoUrl}
                       src={generatedVideoUrl}
@@ -958,14 +961,22 @@ export default function SoMaBiPage() {
                       loop
                       muted
                       playsInline
-                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: videoLoading ? "none" : "block" }}
+                      onLoadedData={() => setVideoLoading(false)}
                       onError={() => setVideoError(true)}
                     />
-                  )
+                    {/* 영상 로딩 중 스피너 */}
+                    {videoLoading && (
+                      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.75rem", background: "rgba(0,0,0,0.7)" }}>
+                        <div className="spinner" style={{ width: "2rem", height: "2rem", borderWidth: "3px" }} />
+                        <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textAlign: "center" }}>AI 영상 생성 중...<br /><span style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>30초~2분 소요될 수 있습니다</span></p>
+                      </div>
+                    )}
+                  </>
                 )}
 
-                {/* 폴백: 홍보 이미지 + Ken Burns 애니메이션 */}
-                {(videoError || !generatedVideoUrl || generatedVideoUrl.startsWith("data:") || generatedVideoUrl.match(/\.(jpg|jpeg|png|webp|gif)$/i)) && (
+                {/* 폴백: 홍보 이미지 + Ken Burns 애니메이션 (영상 로드 실패 시) */}
+                {(videoError || !generatedVideoUrl) && (
                   <div style={{ width: "100%", height: "100%", overflow: "hidden", position: "relative" }}>
                     {generatedImageUrl ? (
                       <img
@@ -982,13 +993,11 @@ export default function SoMaBiPage() {
                     ) : (
                       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
                         <div className="spinner" />
-                        <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>영상 준비 중...</p>
                       </div>
                     )}
-                    {/* 이미지 폴백 안내 */}
                     <div style={{ position: "absolute", top: "0.5rem", left: "0.5rem", right: "0.5rem", zIndex: 10 }}>
-                      <span style={{ fontSize: "0.6rem", background: "rgba(0,0,0,0.65)", color: "#aaa", padding: "0.2rem 0.5rem", borderRadius: "4px" }}>
-                        📸 이미지 기반 프리뷰 (AI 영상 생성 준비 중)
+                      <span style={{ fontSize: "0.6rem", background: "rgba(239,68,68,0.6)", color: "#fff", padding: "0.2rem 0.5rem", borderRadius: "4px" }}>
+                        ⚠️ 영상 로드 실패 · 이미지로 대체
                       </span>
                     </div>
                   </div>
