@@ -2,6 +2,7 @@ import React from "react";
 
 interface StepperProps {
   currentStage: "input" | "post" | "image" | "video" | "publish" | "done";
+  maxReachedStage?: "input" | "post" | "image" | "video" | "publish" | "done";
   onStepClick?: (stage: string) => void;
 }
 
@@ -14,9 +15,11 @@ const STEPS = [
   { id: "done", label: "완료" },
 ];
 
-export default function Stepper({ currentStage, onStepClick }: StepperProps) {
+export default function Stepper({ currentStage, maxReachedStage, onStepClick }: StepperProps) {
   const currentIndex = STEPS.findIndex((step) => step.id === currentStage);
-  const lineWidthPercent = currentIndex <= 0 ? 0 : (currentIndex / (STEPS.length - 1)) * 100;
+  // 실제 진행 최대치 — 미지정 시 currentStage 기준
+  const maxIndex = STEPS.findIndex((step) => step.id === (maxReachedStage ?? currentStage));
+  const lineWidthPercent = maxIndex <= 0 ? 0 : (maxIndex / (STEPS.length - 1)) * 100;
 
   return (
     <div className="stepper-container">
@@ -28,8 +31,10 @@ export default function Stepper({ currentStage, onStepClick }: StepperProps) {
 
       {STEPS.map((step, idx) => {
         const isActive = step.id === currentStage;
-        const isCompleted = idx < currentIndex;
-        const isNavigable = (isCompleted || isActive) && onStepClick;
+        // maxIndex 기준으로 방문 여부 판단 (뒤로 가도 앞 단계들 체크 유지)
+        const isVisited = idx <= maxIndex;
+        const isCompleted = isVisited && !isActive;
+        const isNavigable = isVisited && onStepClick;
 
         return (
           <div
@@ -40,13 +45,11 @@ export default function Stepper({ currentStage, onStepClick }: StepperProps) {
               cursor: isNavigable ? "pointer" : "default",
               transition: "opacity 0.15s",
             }}
-            title={isCompleted ? `${step.label} 단계로 이동` : undefined}
+            title={isNavigable && !isActive ? `${step.label} 단계로 이동` : undefined}
           >
             <div
               className="stepper-node"
-              style={isNavigable && !isActive ? {
-                boxShadow: "0 0 0 2px var(--color-primary)",
-              } : undefined}
+              style={isCompleted ? { boxShadow: "0 0 0 2px var(--color-primary)" } : undefined}
             >
               {isCompleted ? "✓" : idx + 1}
             </div>

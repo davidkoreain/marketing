@@ -63,6 +63,16 @@ export default function SoMaBiPage() {
   const [saveMsg, setSaveMsg] = useState("");
   const [activeTextModel, setActiveTextModel] = useState<string>("gemini");
   const [activeImageModel, setActiveImageModel] = useState<string>("gemini");
+  const [maxReachedStage, setMaxReachedStage] = useState<typeof currentStage>("input");
+
+  // 단계 전진 (뒤로 가기와 달리 maxReachedStage도 갱신)
+  const STAGE_ORDER = ["input", "post", "image", "video", "publish", "done"] as const;
+  function advanceStage(stage: typeof currentStage) {
+    setCurrentStage(stage);
+    setMaxReachedStage((prev) => {
+      return STAGE_ORDER.indexOf(stage) > STAGE_ORDER.indexOf(prev) ? stage : prev;
+    });
+  }
 
   // Form input change handler
   const handleInputChange = (
@@ -104,7 +114,7 @@ export default function SoMaBiPage() {
       setCurrentAgent(stateValues.current_agent || "카피라이터 에이전트");
       setActiveTextModel(stateValues.text_model || "gemini");
       setActiveImageModel(stateValues.image_model || "gemini");
-      setCurrentStage("post");
+      advanceStage("post");
       // 자동 저장 (로컬 + 서버)
       localStorage.setItem("somabi_session", JSON.stringify({
         savedAt: new Date().toLocaleString("ko-KR"),
@@ -224,11 +234,11 @@ export default function SoMaBiPage() {
       if (action === "approve") {
         setRejectCount(0);
         if (currentStage === "post" && nextSteps.includes("image_review")) {
-          setCurrentStage("image");
+          advanceStage("image");
         } else if (currentStage === "image" && nextSteps.includes("video_review")) {
-          setCurrentStage("video");
+          advanceStage("video");
         } else if (currentStage === "video" && data.is_finished) {
-          setCurrentStage("publish");
+          advanceStage("publish");
         }
       } else {
         setRejectCount((c) => c + 1);
@@ -273,7 +283,7 @@ export default function SoMaBiPage() {
 
       setPublishResults(data.publish_results || {});
       setCurrentAgent("배포 에이전트");
-      setCurrentStage("done");
+      advanceStage("done");
       // 최종 배포 결과를 서버에 저장
       saveCampaignToServer({
         thread_id: threadId,
@@ -317,6 +327,7 @@ export default function SoMaBiPage() {
     setFeedbackText("");
     setRejectCount(0);
     setError(null);
+    setMaxReachedStage("input");
     localStorage.removeItem("somabi_session");
     setSavedSession(null);
   };
@@ -371,7 +382,10 @@ export default function SoMaBiPage() {
     if (data.generatedImageUrl) setGeneratedImageUrl(data.generatedImageUrl);
     if (data.generatedVideoScript) setGeneratedVideoScript(data.generatedVideoScript);
     if (data.generatedVideoUrl) setGeneratedVideoUrl(data.generatedVideoUrl);
-    if (data.currentStage) setCurrentStage(data.currentStage);
+    if (data.currentStage) {
+      setCurrentStage(data.currentStage);
+      setMaxReachedStage(data.currentStage);
+    }
     setSavedSession(null);
   }
 
@@ -480,12 +494,16 @@ export default function SoMaBiPage() {
 
       {/* 진행 상황 바 */}
       <div className="glass-card" style={{ padding: "1rem 1.5rem" }}>
-        <Stepper currentStage={currentStage} onStepClick={(stage) => {
-          const order = ["input", "post", "image", "video", "publish", "done"];
-          if (order.indexOf(stage) <= order.indexOf(currentStage)) {
-            setCurrentStage(stage as typeof currentStage);
-          }
-        }} />
+        <Stepper
+          currentStage={currentStage}
+          maxReachedStage={maxReachedStage}
+          onStepClick={(stage) => {
+            const order = ["input", "post", "image", "video", "publish", "done"];
+            if (order.indexOf(stage) <= order.indexOf(maxReachedStage)) {
+              setCurrentStage(stage as typeof currentStage);
+            }
+          }}
+        />
       </div>
 
       {/* 에러 메시지 표시 */}
