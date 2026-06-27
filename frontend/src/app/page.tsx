@@ -475,11 +475,11 @@ export default function SoMaBiPage() {
       isPaid = activeTextModel === "openai";
       label = isPaid ? "GPT-4o · 유료" : "Gemini 2.5 Flash · 무료";
     } else if (type === "image") {
-      isPaid = activeImageModel === "openai";
-      label = isPaid ? "DALL-E 3 · 유료" : "Gemini / Flux AI · 무료";
+      isPaid = activeImageModel === "openai" || activeImageModel === "seedream";
+      label = activeImageModel === "openai" ? "DALL-E 3 · 유료" : activeImageModel === "seedream" ? "Seedream v4.5 · FAL" : "Gemini / Flux AI · 무료";
     } else {
-      isPaid = activeVideoModel === "runway" || activeVideoModel === "veo3";
-      label = activeVideoModel === "veo3" ? "Veo 3 · 유료" : isPaid ? "Runway Gen-3 · 유료" : "이미지 프리뷰 · 무료";
+      isPaid = activeVideoModel === "runway" || activeVideoModel === "veo3" || activeVideoModel === "seedance";
+      label = activeVideoModel === "veo3" ? "Veo 3 · 유료" : activeVideoModel === "seedance" ? "Seedance 2.0 · FAL" : isPaid ? "Runway Gen-3 · 유료" : "이미지 프리뷰 · 무료";
     }
 
     return (
@@ -962,7 +962,8 @@ export default function SoMaBiPage() {
               >
                 {loading ? (
                   <>
-                    <div className="spinner" /> 영상 편집자 대기 중...
+                    <div className="spinner" />
+                    {activeVideoModel === "seedance" ? "Seedance 2.0 영상 생성 중... (1~3분 소요)" : "영상 편집자 대기 중..."}
                   </>
                 ) : (
                   "이미지 확정 및 쇼츠 단계 이동"
@@ -1010,8 +1011,9 @@ export default function SoMaBiPage() {
                 }}
               >
                 {(() => {
-                  // data:video/ 로 시작하면 실제 AI 영상 (Veo3 등)
-                  const isRealVideo = generatedVideoUrl?.startsWith("data:video/");
+                  // data:video/ (Veo3 base64) 또는 CDN https URL이면서 이미지 URL과 다른 경우 = 실제 AI 영상 (Seedance 등)
+                  const isRealVideo = generatedVideoUrl?.startsWith("data:video/") ||
+                    (!!generatedVideoUrl && generatedVideoUrl.startsWith("https://") && generatedVideoUrl !== generatedImageUrl);
                   if (isRealVideo && !videoError) {
                     return (
                       <>

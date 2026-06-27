@@ -9,6 +9,7 @@ interface Settings {
   email: string;
   openai_api_key_masked: string | null;
   gemini_api_key_masked: string | null;
+  fal_api_key_masked: string | null;
   text_model: string;
   image_model: string;
   video_model: string;
@@ -18,6 +19,7 @@ interface Settings {
   kakao_channel_id: string;
   has_openai: boolean;
   has_gemini: boolean;
+  has_fal: boolean;
   has_instagram: boolean;
   has_kakao: boolean;
 }
@@ -54,6 +56,7 @@ export default function SettingsPage() {
 
   const [openaiKey, setOpenaiKey] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
+  const [falKey, setFalKey] = useState("");
   const [textModel, setTextModel] = useState("gemini");
   const [imageModel, setImageModel] = useState("gemini");
   const [videoModel, setVideoModel] = useState("pollinations");
@@ -89,6 +92,7 @@ export default function SettingsPage() {
     const body: Record<string, string> = {};
     if (openaiKey) body.openai_api_key = openaiKey;
     if (geminiKey) body.gemini_api_key = geminiKey;
+    if (falKey) body.fal_api_key = falKey;
     body.text_model = textModel;
     body.image_model = imageModel;
     body.video_model = videoModel;
@@ -107,7 +111,7 @@ export default function SettingsPage() {
       if (!res.ok) { setMessage(data.detail || "저장 실패"); return; }
       setMessage("설정이 저장되었습니다.");
       setSettings((prev) => prev ? { ...prev, ...data } : prev);
-      setOpenaiKey(""); setGeminiKey(""); setIgToken(""); setKakaoKey("");
+      setOpenaiKey(""); setGeminiKey(""); setFalKey(""); setIgToken(""); setKakaoKey("");
     } catch {
       setMessage("서버 오류가 발생했습니다.");
     } finally {
@@ -172,6 +176,18 @@ export default function SettingsPage() {
             )}
             <input type="password" className="form-input" placeholder="AIzaSy..." value={geminiKey} onChange={(e) => setGeminiKey(e.target.value)} autoComplete="off" />
           </div>
+
+          <div className="form-group">
+            <label className="form-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>FAL API Key <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>(Seedream 이미지 · Seedance 영상)</span></span>
+              <StatusBadge active={settings?.has_fal ?? false} />
+            </label>
+            {settings?.fal_api_key_masked && (
+              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.4rem" }}>현재: {settings.fal_api_key_masked}</p>
+            )}
+            <input type="password" className="form-input" placeholder="fal_key_..." value={falKey} onChange={(e) => setFalKey(e.target.value)} autoComplete="off" />
+            <p style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>fal.ai 가입 시 무료 크레딧 제공 · Seedream 이미지($0.04/장) · Seedance 2.0 영상</p>
+          </div>
         </div>
 
         {/* AI 모델 선택 */}
@@ -215,10 +231,11 @@ export default function SettingsPage() {
           {/* 이미지 생성 모델 */}
           <div className="form-group">
             <label className="form-label">🎨 이미지 생성 모델</label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               {[
-                { value: "gemini", label: "Flux AI", desc: "API 키 불필요 · Gemini 프롬프트 최적화", badge: "무료 추천" },
-                { value: "openai", label: "OpenAI DALL-E 3", desc: "최고 품질 이미지 · 유료 크레딧 필요", badge: "유료" },
+                { value: "gemini", label: "Flux AI (Gemini 프롬프트)", desc: "API 키 불필요 · 빠른 생성 · 무료", badge: "무료 추천", badgeFree: true },
+                { value: "seedream", label: "Seedream v4.5 (ByteDance)", desc: "FAL API 키 필요 · 고품질 광고 이미지 · 가입 시 무료 크레딧", badge: "FAL 키 필요", badgeFree: false },
+                { value: "openai", label: "OpenAI DALL-E 3", desc: "최고 품질 이미지 · OpenAI 유료 크레딧 필요", badge: "유료", badgeFree: false },
               ].map((opt) => (
                 <label key={opt.value} style={{
                   display: "flex", flexDirection: "column", gap: "0.3rem",
@@ -230,7 +247,7 @@ export default function SettingsPage() {
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     <input type="radio" name="image_model" value={opt.value} checked={imageModel === opt.value} onChange={() => setImageModel(opt.value)} style={{ accentColor: "var(--color-secondary)" }} />
                     <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{opt.label}</span>
-                    {opt.badge && <span style={{ fontSize: "0.65rem", background: opt.value === "gemini" ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.15)", color: opt.value === "gemini" ? "var(--color-success)" : "var(--color-error)", padding: "1px 6px", borderRadius: "999px", fontWeight: 700 }}>{opt.badge}</span>}
+                    {opt.badge && <span style={{ fontSize: "0.65rem", background: opt.badgeFree ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.15)", color: opt.badgeFree ? "var(--color-success)" : "var(--color-error)", padding: "1px 6px", borderRadius: "999px", fontWeight: 700 }}>{opt.badge}</span>}
                   </div>
                   <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", paddingLeft: "1.4rem" }}>{opt.desc}</span>
                 </label>
@@ -244,7 +261,8 @@ export default function SettingsPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               {[
                 { value: "pollinations", label: "이미지 기반 프리뷰", desc: "API 불필요 · Ken Burns 애니메이션 · 다운로드 가능", badge: "무료 추천", free: true, disabled: false },
-                { value: "veo3", label: "Veo 3 (Google)", desc: "Gemini API 필요 · 고품질 AI 영상 8초 · Google AI Ultra 플랜", badge: "유료", free: false, disabled: false },
+                { value: "seedance", label: "Seedance 2.0 (ByteDance)", desc: "FAL API 키 필요 · 고품질 AI 영상 5초 · 9:16 세로 포맷 · 가입 시 무료 크레딧", badge: "FAL 키 필요", free: false, disabled: false },
+                { value: "veo3", label: "Veo 3 (Google)", desc: "Gemini API 필요 · 고품질 AI 영상 8초 · Google AI Ultra 플랜($249/월)", badge: "유료", free: false, disabled: false },
                 { value: "runway", label: "Runway Gen-3", desc: "Runway API 키 필요 · 고품질 AI 영상 · 연동 예정", badge: "준비 중", free: false, disabled: true },
               ].map((opt) => (
                 <label key={opt.value} style={{

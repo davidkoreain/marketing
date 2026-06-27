@@ -30,6 +30,7 @@ class AgentState(TypedDict):
     # 사용자별 API 키 (세션 시작 시 DB에서 주입, 런타임 메모리에만 존재)
     openai_api_key: Optional[str]
     gemini_api_key: Optional[str]
+    fal_api_key: Optional[str]
 
     # AI 모델 선택
     text_model: Optional[str]

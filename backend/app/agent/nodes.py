@@ -186,6 +186,28 @@ def generate_image_node(state: AgentState) -> dict:
             except Exception:
                 pass  # Pollinations 폴백으로 진행
 
+    elif image_model == "seedream":
+        fal_key = state.get("fal_api_key")
+        if fal_key:
+            try:
+                import os as _os
+                _os.environ["FAL_KEY"] = fal_key
+                import fal_client as _fal
+                _result = _fal.run(
+                    "fal-ai/bytedance/seedream/v4.5/text-to-image",
+                    arguments={
+                        "prompt": image_prompt,
+                        "image_size": "portrait_4_3",
+                        "num_images": 1,
+                    },
+                )
+                if _result and "images" in _result and _result["images"]:
+                    image_url = _result["images"][0]["url"]
+            except Exception as _e:
+                image_error = f"Seedream 오류: {str(_e)[:120]}"
+        else:
+            image_error = "FAL API 키가 없습니다. 설정 > FAL API Key를 입력하거나 Flux AI(무료)로 전환하세요."
+
     # 공통 폴백: Pollinations.ai Flux (무료, API 키 불필요) — 항상 실제 이미지 반환
     if not image_url:
         import urllib.parse, random
@@ -255,7 +277,38 @@ def generate_video_node(state: AgentState) -> dict:
     video_model = state.get("video_model") or "pollinations"
     image_url_for_video = state.get("generated_image_url") or ""
 
-    if video_model == "veo3":
+    if video_model == "seedance":
+        fal_key = state.get("fal_api_key")
+        if fal_key:
+            try:
+                import os as _os
+                _os.environ["FAL_KEY"] = fal_key
+                import fal_client as _fal
+                _video_prompt = (
+                    f"cinematic vertical advertisement video for {state.get('product_name', 'product')}, "
+                    f"{state.get('tone_and_manner', 'professional')} style, warm lighting, smooth motion, no text overlay"
+                )
+                _result = _fal.run(
+                    "bytedance/seedance-2.0/text-to-video",
+                    arguments={
+                        "prompt": _video_prompt,
+                        "aspect_ratio": "9:16",
+                        "duration": "5",
+                        "resolution": "720p",
+                        "generate_audio": False,
+                    },
+                    timeout=300,
+                )
+                if _result and "video" in _result and _result["video"]:
+                    video_url = _result["video"]["url"]
+                else:
+                    video_url = image_url_for_video
+            except Exception:
+                video_url = image_url_for_video
+        else:
+            video_url = image_url_for_video
+
+    elif video_model == "veo3":
         gemini_key = state.get("gemini_api_key")
         if gemini_key:
             try:

@@ -12,6 +12,7 @@ class User(Base):
     # AI API 키
     openai_api_key = Column(String, nullable=True)
     gemini_api_key = Column(String, nullable=True)
+    fal_api_key = Column(String, nullable=True)
 
     # AI 모델 선택 (글: openai/gemini, 이미지: openai/gemini, 영상: pollinations/runway)
     text_model = Column(String, nullable=True, default="gemini")

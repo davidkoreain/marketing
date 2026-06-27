@@ -11,6 +11,7 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 class UpdateSettingsRequest(BaseModel):
     openai_api_key: Optional[str] = None
     gemini_api_key: Optional[str] = None
+    fal_api_key: Optional[str] = None
     text_model: Optional[str] = None
     image_model: Optional[str] = None
     video_model: Optional[str] = None
@@ -37,8 +38,10 @@ def get_settings(current_user: models.User = Depends(get_current_user)):
         "instagram_account_id": current_user.instagram_account_id or "",
         "kakao_rest_api_key_masked": mask_key(current_user.kakao_rest_api_key),
         "kakao_channel_id": current_user.kakao_channel_id or "",
+        "fal_api_key_masked": mask_key(current_user.fal_api_key),
         "has_openai": bool(current_user.openai_api_key),
         "has_gemini": bool(current_user.gemini_api_key),
+        "has_fal": bool(current_user.fal_api_key),
         "has_instagram": bool(current_user.instagram_access_token),
         "has_kakao": bool(current_user.kakao_rest_api_key),
     }
@@ -53,6 +56,8 @@ def update_settings(
         current_user.openai_api_key = data.openai_api_key or None
     if data.gemini_api_key is not None:
         current_user.gemini_api_key = data.gemini_api_key or None
+    if data.fal_api_key is not None:
+        current_user.fal_api_key = data.fal_api_key or None
     if data.text_model is not None:
         current_user.text_model = data.text_model
     if data.image_model is not None:
@@ -76,6 +81,7 @@ def update_settings(
         "video_model": current_user.video_model or "pollinations",
         "has_openai": bool(current_user.openai_api_key),
         "has_gemini": bool(current_user.gemini_api_key),
+        "has_fal": bool(current_user.fal_api_key),
         "has_instagram": bool(current_user.instagram_access_token),
         "has_kakao": bool(current_user.kakao_rest_api_key),
     }
