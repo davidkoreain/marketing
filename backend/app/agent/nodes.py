@@ -251,30 +251,44 @@ def generate_video_node(state: AgentState) -> dict:
                 f"- 10~15s: 매장 약도 혹은 브랜드 로고 노출. 자막: '행복한 하루의 시작, 지금 프로필 링크 클릭!'"
             )
 
-    # 영상 생성 — Pollinations.ai (무료, API 키 불필요)
+    # 영상 생성
     import urllib.parse, random as _random
+    video_model = state.get("video_model") or "pollinations"
     product_name_v = state.get("product_name", "product")
     tone_v = state.get("tone_and_manner", "professional")
-    _video_prompt = (
-        f"cinematic short advertisement video, {product_name_v}, "
-        f"{tone_v} style, smooth motion, warm lighting, professional quality, no text overlay"
-    )
-    _encoded_v = urllib.parse.quote(_video_prompt[:300])
-    _seed_v = _random.randint(10000, 99999)
-    video_url = f"https://video.pollinations.ai/prompt/{_encoded_v}?nologo=true&seed={_seed_v}"
+    video_url = ""
 
-    # 영상 로드 가능 여부 빠르게 확인 (실패 시 이미지 URL로 폴백)
-    try:
-        import requests as _req
-        _r = _req.head(video_url, timeout=6, allow_redirects=True)
-        if not (_r.ok and "video" in _r.headers.get("Content-Type", "")):
-            video_url = state.get("generated_image_url") or video_url
-    except Exception:
-        video_url = state.get("generated_image_url") or video_url
+    if video_model == "pollinations":
+        _video_prompt = (
+            f"cinematic short advertisement video, {product_name_v}, "
+            f"{tone_v} style, smooth motion, warm lighting, professional quality, no text overlay"
+        )
+        _encoded_v = urllib.parse.quote(_video_prompt[:300])
+        _seed_v = _random.randint(10000, 99999)
+        _candidate = f"https://video.pollinations.ai/prompt/{_encoded_v}?nologo=true&seed={_seed_v}"
+        # HEAD 요청으로 실제 영상 반환 여부 확인
+        try:
+            import requests as _req
+            _r = _req.head(_candidate, timeout=8, allow_redirects=True)
+            if _r.ok and "video" in _r.headers.get("Content-Type", ""):
+                video_url = _candidate
+        except Exception:
+            pass
+        # 폴백: 홍보 이미지 URL (프론트에서 Ken Burns 애니메이션으로 표시)
+        if not video_url:
+            video_url = state.get("generated_image_url") or _candidate
+
+    elif video_model == "runway":
+        # Runway ML Gen-3 Alpha (API 키 필요) — 추후 연동 예정
+        video_url = state.get("generated_image_url") or ""
+        video_model_used = "runway_pending"
+    else:
+        video_url = state.get("generated_image_url") or ""
 
     return {
         "generated_video_script": video_script,
         "generated_video_url": video_url,
+        "video_model": video_model,
         "user_feedback": None,
         "current_agent": "영상 편집자 에이전트"
     }

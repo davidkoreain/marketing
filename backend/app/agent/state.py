@@ -31,7 +31,8 @@ class AgentState(TypedDict):
     openai_api_key: Optional[str]
     gemini_api_key: Optional[str]
 
-    # AI 모델 선택 (text_model: openai/gemini, image_model: openai/gemini)
+    # AI 모델 선택
     text_model: Optional[str]
     image_model: Optional[str]
+    video_model: Optional[str]
 

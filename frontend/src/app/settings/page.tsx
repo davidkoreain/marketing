@@ -11,6 +11,7 @@ interface Settings {
   gemini_api_key_masked: string | null;
   text_model: string;
   image_model: string;
+  video_model: string;
   instagram_access_token_masked: string | null;
   instagram_account_id: string;
   kakao_rest_api_key_masked: string | null;
@@ -55,6 +56,7 @@ export default function SettingsPage() {
   const [geminiKey, setGeminiKey] = useState("");
   const [textModel, setTextModel] = useState("gemini");
   const [imageModel, setImageModel] = useState("openai");
+  const [videoModel, setVideoModel] = useState("pollinations");
   const [igToken, setIgToken] = useState("");
   const [igAccountId, setIgAccountId] = useState("");
   const [kakaoKey, setKakaoKey] = useState("");
@@ -71,6 +73,7 @@ export default function SettingsPage() {
         setSettings(data);
         setTextModel(data.text_model || "gemini");
         setImageModel(data.image_model || "openai");
+        setVideoModel(data.video_model || "pollinations");
         setIgAccountId(data.instagram_account_id || "");
         setKakaoChannelId(data.kakao_channel_id || "");
       })
@@ -88,6 +91,7 @@ export default function SettingsPage() {
     if (geminiKey) body.gemini_api_key = geminiKey;
     body.text_model = textModel;
     body.image_model = imageModel;
+    body.video_model = videoModel;
     if (igToken) body.instagram_access_token = igToken;
     if (igAccountId !== undefined) body.instagram_account_id = igAccountId;
     if (kakaoKey) body.kakao_rest_api_key = kakaoKey;
@@ -241,9 +245,38 @@ export default function SettingsPage() {
           {/* 영상 생성 모델 */}
           <div className="form-group">
             <label className="form-label">🎬 영상 생성 모델</label>
-            <div style={{ padding: "0.85rem", borderRadius: "10px", border: "1px solid var(--border-color)", background: "rgba(255,255,255,0.02)" }}>
-              <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>🚧 영상 생성 모델 연동 준비 중 (Sora, Veo 3 등)</p>
-              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>현재는 대본 작성 후 Mock 영상으로 미리보기를 제공합니다.</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+              {[
+                { value: "pollinations", label: "Pollinations.ai", desc: "API 키 불필요 · Flux 영상 모델", badge: "무료 추천" },
+                { value: "runway", label: "Runway Gen-3", desc: "고품질 AI 영상 · 연동 준비 중", badge: "유료 (준비 중)" },
+              ].map((opt) => (
+                <label key={opt.value} style={{
+                  display: "flex", flexDirection: "column", gap: "0.3rem",
+                  padding: "0.85rem", borderRadius: "10px", cursor: opt.value === "runway" ? "not-allowed" : "pointer",
+                  border: videoModel === opt.value ? "2px solid var(--color-accent)" : "1px solid var(--border-color)",
+                  background: videoModel === opt.value ? "rgba(6,182,212,0.08)" : "rgba(255,255,255,0.02)",
+                  opacity: opt.value === "runway" ? 0.6 : 1,
+                  transition: "all 0.15s",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <input
+                      type="radio" name="video_model" value={opt.value}
+                      checked={videoModel === opt.value}
+                      onChange={() => opt.value !== "runway" && setVideoModel(opt.value)}
+                      disabled={opt.value === "runway"}
+                      style={{ accentColor: "var(--color-accent)" }}
+                    />
+                    <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{opt.label}</span>
+                    <span style={{
+                      fontSize: "0.65rem",
+                      background: opt.value === "pollinations" ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.15)",
+                      color: opt.value === "pollinations" ? "var(--color-success)" : "var(--color-error)",
+                      padding: "1px 6px", borderRadius: "999px", fontWeight: 700,
+                    }}>{opt.badge}</span>
+                  </div>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", paddingLeft: "1.4rem" }}>{opt.desc}</span>
+                </label>
+              ))}
             </div>
           </div>
         </div>

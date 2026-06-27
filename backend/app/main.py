@@ -22,6 +22,7 @@ from sqlalchemy import text
 with engine.connect() as _conn:
     _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS text_model VARCHAR"))
     _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS image_model VARCHAR"))
+    _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS video_model VARCHAR"))
     _conn.commit()
 
 app = FastAPI(
@@ -95,8 +96,9 @@ def start_session(
         # 사용자 DB에서 API 키 및 모델 선택 주입
         "openai_api_key": current_user.openai_api_key,
         "gemini_api_key": current_user.gemini_api_key,
-        "text_model": current_user.text_model or "gemini",   # 기본: 무료(Gemini)
-        "image_model": current_user.image_model or "gemini", # 기본: 무료(Flux AI)
+        "text_model": current_user.text_model or "gemini",         # 기본: 무료(Gemini)
+        "image_model": current_user.image_model or "gemini",       # 기본: 무료(Flux AI)
+        "video_model": current_user.video_model or "pollinations",  # 기본: 무료(Pollinations)
     }
 
     try:

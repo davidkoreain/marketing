@@ -63,8 +63,10 @@ export default function SoMaBiPage() {
   const [saveMsg, setSaveMsg] = useState("");
   const [activeTextModel, setActiveTextModel] = useState<string>("gemini");
   const [activeImageModel, setActiveImageModel] = useState<string>("gemini");
+  const [activeVideoModel, setActiveVideoModel] = useState<string>("pollinations");
   const [maxReachedStage, setMaxReachedStage] = useState<typeof currentStage>("input");
   const [videoError, setVideoError] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   // 단계 전진 (뒤로 가기와 달리 maxReachedStage도 갱신)
   const STAGE_ORDER = ["input", "post", "image", "video", "publish", "done"] as const;
@@ -115,6 +117,8 @@ export default function SoMaBiPage() {
       setCurrentAgent(stateValues.current_agent || "카피라이터 에이전트");
       setActiveTextModel(stateValues.text_model || "gemini");
       setActiveImageModel(stateValues.image_model || "gemini");
+      setActiveVideoModel(stateValues.video_model || "pollinations");
+      setSessionExpired(false);
       advanceStage("post");
       // 자동 저장 (로컬 + 서버)
       localStorage.setItem("somabi_session", JSON.stringify({
@@ -181,6 +185,10 @@ export default function SoMaBiPage() {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
+        if (response.status === 404) {
+          setSessionExpired(true);
+          throw new Error("서버가 재시작되어 세션이 만료되었습니다. 아래 버튼으로 복원하세요.");
+        }
         throw new Error(`피드백 전송 실패 (${response.status}): ${errData.detail || response.statusText || "알 수 없는 오류"}`);
       }
 
@@ -194,9 +202,10 @@ export default function SoMaBiPage() {
       setGeneratedImageUrl(stateValues.generated_image_url);
       setGeneratedVideoScript(stateValues.generated_video_script);
       if (stateValues.generated_video_url !== generatedVideoUrl) {
-        setVideoError(false); // 새 URL이면 에러 상태 초기화
+        setVideoError(false);
       }
       setGeneratedVideoUrl(stateValues.generated_video_url);
+      if (stateValues.video_model) setActiveVideoModel(stateValues.video_model);
       setCurrentAgent(stateValues.current_agent || null);
 
       // Clear feedback input
@@ -333,6 +342,7 @@ export default function SoMaBiPage() {
     setRejectCount(0);
     setError(null);
     setMaxReachedStage("input");
+    setSessionExpired(false);
     localStorage.removeItem("somabi_session");
     setSavedSession(null);
   };
@@ -406,8 +416,8 @@ export default function SoMaBiPage() {
       isPaid = activeImageModel === "openai";
       label = isPaid ? "DALL-E 3 · 유료" : "Gemini / Flux AI · 무료";
     } else {
-      isPaid = false;
-      label = "스크립트 AI · 무료";
+      isPaid = activeVideoModel === "runway";
+      label = isPaid ? "Runway Gen-3 · 유료" : "Pollinations.ai · 무료";
     }
 
     return (
@@ -456,21 +466,19 @@ export default function SoMaBiPage() {
         </p>
         <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
           {currentStage === "post"
-            ? "GPT-4o(유료)로 전환하면 더 정교한 마케팅 글을 생성할 수 있어요."
+            ? `현재 ${activeTextModel === "gemini" ? "Gemini(무료)" : "GPT-4o(유료)"} 사용 중. ${activeTextModel === "gemini" ? "GPT-4o로 전환하면 더 정교한 마케팅 글을 생성할 수 있어요." : "더 많은 피드백을 시도해 보세요."}`
             : currentStage === "image"
-            ? "DALL-E 3(유료)로 전환하면 더 고품질의 이미지를 생성할 수 있어요."
-            : "영상 생성 AI(Sora, Veo 3 등) 연동이 곧 추가될 예정입니다."}
+            ? `현재 ${activeImageModel === "gemini" ? "Flux AI(무료)" : "DALL-E 3(유료)"} 사용 중. ${activeImageModel === "gemini" ? "DALL-E 3로 전환하면 더 고품질 이미지를 생성할 수 있어요." : "더 많은 피드백을 시도해 보세요."}`
+            : `현재 Pollinations.ai(무료) 사용 중. Runway Gen-3 등 유료 AI 영상 연동이 곧 추가됩니다. 지금은 대본을 CapCut·Canva에서 활용해 보세요.`}
         </p>
       </div>
-      {currentStage !== "video" && (
-        <Link href="/settings" style={{
-          fontSize: "0.75rem", color: "white", textDecoration: "none",
-          background: "var(--color-primary)", padding: "0.4rem 0.75rem",
-          borderRadius: "6px", whiteSpace: "nowrap", flexShrink: 0,
-        }}>
-          유료 모델 전환
-        </Link>
-      )}
+      <Link href="/settings" style={{
+        fontSize: "0.75rem", color: "white", textDecoration: "none",
+        background: "var(--color-primary)", padding: "0.4rem 0.75rem",
+        borderRadius: "6px", whiteSpace: "nowrap", flexShrink: 0,
+      }}>
+        ⚙️ 모델 설정
+      </Link>
     </div>
   ) : null;
 
@@ -524,6 +532,39 @@ export default function SoMaBiPage() {
         >
           <p style={{ fontWeight: 600, fontSize: "0.875rem" }}>⚠️ 에러 발생</p>
           <p style={{ fontSize: "0.85rem", marginTop: "0.25rem" }}>{error}</p>
+        </div>
+      )}
+
+      {/* 세션 만료 복원 배너 (Render 재시작으로 MemorySaver 소실 시) */}
+      {sessionExpired && (
+        <div className="glass-card fade-in" style={{ borderColor: "rgba(245,158,11,0.4)", background: "rgba(245,158,11,0.08)", padding: "1rem 1.25rem" }}>
+          <p style={{ fontWeight: 700, fontSize: "0.875rem", color: "var(--color-warning)" }}>
+            ⏱️ 서버 세션이 만료되었습니다
+          </p>
+          <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: "0.35rem 0 0.75rem" }}>
+            Render 무료 서버는 15분 비활성 시 재시작됩니다. 저장된 상품 정보로 세션을 자동 복원합니다.
+          </p>
+          <button
+            onClick={async (e) => {
+              setSessionExpired(false);
+              setError(null);
+              setCurrentStage("input");
+              setMaxReachedStage("input");
+              // formData가 남아있으면 자동으로 재시작
+              if (formData.product_name && formData.product_desc) {
+                await handleStartSession(e as any);
+              }
+            }}
+            style={{ fontSize: "0.8rem", padding: "0.45rem 1rem", background: "var(--color-warning)", color: "#000", border: "none", borderRadius: "7px", fontWeight: 700, cursor: "pointer" }}
+          >
+            🔄 세션 복원 시도
+          </button>
+          <button
+            onClick={() => { setSessionExpired(false); setError(null); handleReset(); }}
+            style={{ fontSize: "0.8rem", padding: "0.45rem 0.8rem", background: "transparent", color: "var(--text-muted)", border: "1px solid var(--border-color)", borderRadius: "7px", cursor: "pointer", marginLeft: "0.5rem" }}
+          >
+            처음부터 시작
+          </button>
         </div>
       )}
 

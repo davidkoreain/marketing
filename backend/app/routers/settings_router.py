@@ -13,6 +13,7 @@ class UpdateSettingsRequest(BaseModel):
     gemini_api_key: Optional[str] = None
     text_model: Optional[str] = None
     image_model: Optional[str] = None
+    video_model: Optional[str] = None
     instagram_access_token: Optional[str] = None
     instagram_account_id: Optional[str] = None
     kakao_rest_api_key: Optional[str] = None
@@ -31,6 +32,7 @@ def get_settings(current_user: models.User = Depends(get_current_user)):
         "gemini_api_key_masked": mask_key(current_user.gemini_api_key),
         "text_model": current_user.text_model or "gemini",
         "image_model": current_user.image_model or "openai",
+        "video_model": current_user.video_model or "pollinations",
         "instagram_access_token_masked": mask_key(current_user.instagram_access_token),
         "instagram_account_id": current_user.instagram_account_id or "",
         "kakao_rest_api_key_masked": mask_key(current_user.kakao_rest_api_key),
@@ -55,6 +57,8 @@ def update_settings(
         current_user.text_model = data.text_model
     if data.image_model is not None:
         current_user.image_model = data.image_model
+    if data.video_model is not None:
+        current_user.video_model = data.video_model
     if data.instagram_access_token is not None:
         current_user.instagram_access_token = data.instagram_access_token or None
     if data.instagram_account_id is not None:
@@ -69,6 +73,7 @@ def update_settings(
         "message": "설정이 저장되었습니다.",
         "text_model": current_user.text_model or "gemini",
         "image_model": current_user.image_model or "openai",
+        "video_model": current_user.video_model or "pollinations",
         "has_openai": bool(current_user.openai_api_key),
         "has_gemini": bool(current_user.gemini_api_key),
         "has_instagram": bool(current_user.instagram_access_token),
