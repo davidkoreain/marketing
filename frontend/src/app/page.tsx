@@ -816,12 +816,24 @@ export default function SoMaBiPage() {
               홍보글과 어울리는 이미지를 생성했습니다. 구도나 요소를 바꾸고 싶다면 피드백 의견을 전달해 주세요.
             </p>
 
+            {/* 이미지 생성 오류 배너 */}
+            {(() => {
+              const errMatch = generatedImagePrompt?.match(/\[이미지 생성 오류: (.+?)\]$/s);
+              if (!errMatch) return null;
+              const [, errMsg] = errMatch;
+              return (
+                <div style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.4)", borderRadius: "0.5rem", padding: "0.75rem 1rem", marginBottom: "1rem", fontSize: "0.82rem", color: "#fca5a5" }}>
+                  ⚠️ <strong>이미지 생성 오류:</strong> {errMsg}
+                </div>
+              );
+            })()}
+
             <div className="instagram-mockup" style={{ marginBottom: "1.5rem" }}>
               <div className="insta-header">
                 <div className="insta-avatar">So</div>
                 <div className="insta-username">somabi_marketing</div>
               </div>
-              
+
               <div className="insta-image-wrapper">
                 {generatedImageUrl ? (
                   <img
@@ -846,7 +858,7 @@ export default function SoMaBiPage() {
               <div className="insta-caption-area" style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "0.75rem" }}>
                 <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>AI 이미지 생성 프롬프트:</p>
                 <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontStyle: "italic", marginBottom: "0.75rem" }}>
-                  {generatedImagePrompt}
+                  {(generatedImagePrompt || "").split("\n\n[이미지 생성")[0]}
                 </p>
                 <div className="insta-caption-text">
                   <span className="insta-username" style={{ marginRight: "0.5rem" }}>somabi_marketing</span>

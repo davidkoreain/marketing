@@ -31,7 +31,7 @@ def get_settings(current_user: models.User = Depends(get_current_user)):
         "openai_api_key_masked": mask_key(current_user.openai_api_key),
         "gemini_api_key_masked": mask_key(current_user.gemini_api_key),
         "text_model": current_user.text_model or "gemini",
-        "image_model": current_user.image_model or "openai",
+        "image_model": current_user.image_model or "gemini",
         "video_model": current_user.video_model or "pollinations",
         "instagram_access_token_masked": mask_key(current_user.instagram_access_token),
         "instagram_account_id": current_user.instagram_account_id or "",
@@ -72,7 +72,7 @@ def update_settings(
     return {
         "message": "설정이 저장되었습니다.",
         "text_model": current_user.text_model or "gemini",
-        "image_model": current_user.image_model or "openai",
+        "image_model": current_user.image_model or "gemini",
         "video_model": current_user.video_model or "pollinations",
         "has_openai": bool(current_user.openai_api_key),
         "has_gemini": bool(current_user.gemini_api_key),

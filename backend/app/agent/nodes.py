@@ -114,7 +114,9 @@ def generate_image_node(state: AgentState) -> dict:
     tone_and_manner = state.get("tone_and_manner", "")
 
     feedback = state.get("user_feedback")
-    previous_prompt = state.get("generated_image_prompt")
+    previous_prompt_raw = state.get("generated_image_prompt") or ""
+    # 이전 프롬프트에 오류 메시지가 섞여 있으면 제거 후 LLM에 전달
+    previous_prompt = previous_prompt_raw.split("\n\n[이미지 생성")[0].strip() if "[이미지 생성" in previous_prompt_raw else previous_prompt_raw
 
     # 1. 이미지 생성 프롬프트 작성 (LLM)
     if llm:
@@ -135,13 +137,12 @@ def generate_image_node(state: AgentState) -> dict:
                 f"출력은 오직 프롬프트 텍스트만 리턴해 주세요."
             )
         response = llm.invoke(prompt_query)
-        image_prompt = response.content
+        image_prompt = response.content.strip()
     else:
-        image_prompt = f"A professional food photography of fresh {product_name}, product focus, warm lighting, cozy cafe background, 4k resolution, no text"
+        image_prompt = f"A professional product photography of {product_name}, clean background, warm lighting, 4k, no text"
 
-    # 2. 이미지 생성
-    MOCK_IMAGE_URL = "https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=1024&auto=format&fit=crop"
-    image_url = MOCK_IMAGE_URL
+    # 2. 이미지 생성 — 실패 시 Pollinations.ai(무료)로 반드시 폴백 (mock URL 절대 사용 안 함)
+    image_url = None
     image_error = None
 
     if image_model == "openai":
@@ -159,15 +160,12 @@ def generate_image_node(state: AgentState) -> dict:
                 )
                 image_url = resp.data[0].url
             except Exception as e:
-                image_error = f"DALL-E 오류: {e}"
+                image_error = f"DALL-E 3 오류: {str(e)[:120]}"
         else:
-            image_error = "OpenAI API 키가 없습니다. 설정에서 입력하거나 Gemini 이미지 모델로 변경해주세요."
+            image_error = "OpenAI API 키가 없습니다. 설정 > AI 모델에서 키를 입력하거나 Flux AI(무료)로 전환하세요."
 
     elif image_model == "gemini":
-        # Imagen 3는 Vertex AI 전용 — 일반 Gemini API 키로 접근 불가
-        # 1차: Gemini 네이티브 이미지 생성 시도
         gemini_key = state.get("gemini_api_key") or GEMINI_API_KEY
-        _img_generated = False
         if gemini_key and not gemini_key.startswith("your_gemini"):
             try:
                 from google import genai as google_genai
@@ -176,9 +174,7 @@ def generate_image_node(state: AgentState) -> dict:
                 _resp = _client.models.generate_content(
                     model="gemini-2.0-flash-preview-image-generation",
                     contents=image_prompt,
-                    config=genai_types.GenerateContentConfig(
-                        response_modalities=["IMAGE"]
-                    ),
+                    config=genai_types.GenerateContentConfig(response_modalities=["IMAGE"]),
                 )
                 for _part in _resp.candidates[0].content.parts:
                     if hasattr(_part, "inline_data") and _part.inline_data:
@@ -186,19 +182,23 @@ def generate_image_node(state: AgentState) -> dict:
                         _b64 = base64.b64encode(_part.inline_data.data).decode("utf-8")
                         _mime = getattr(_part.inline_data, "mime_type", "image/png") or "image/png"
                         image_url = f"data:{_mime};base64,{_b64}"
-                        _img_generated = True
                         break
             except Exception:
-                pass
-        # 2차: Pollinations.ai (Flux 모델, 완전 무료, API 키 불필요)
-        if not _img_generated:
-            import urllib.parse, random
-            _encoded = urllib.parse.quote(image_prompt[:400])
-            _seed = random.randint(10000, 99999)
-            image_url = f"https://image.pollinations.ai/prompt/{_encoded}?model=flux&width=1024&height=1024&nologo=true&seed={_seed}"
+                pass  # Pollinations 폴백으로 진행
 
+    # 공통 폴백: Pollinations.ai Flux (무료, API 키 불필요) — 항상 실제 이미지 반환
+    if not image_url:
+        import urllib.parse, random
+        _encoded = urllib.parse.quote(image_prompt[:400])
+        _seed = random.randint(10000, 99999)
+        image_url = f"https://image.pollinations.ai/prompt/{_encoded}?model=flux&width=1024&height=1024&nologo=true&seed={_seed}"
+        if image_error:
+            # 유료 모델 실패 → Flux로 대체 생성됨을 명시
+            image_error = image_error + " → Flux AI(무료)로 대체 생성합니다."
+
+    # 오류 내용은 프롬프트에 주석으로 기록 (프론트에서 파싱해 표시)
     if image_error:
-        image_prompt = f"{image_prompt}\n\n[이미지 생성 실패: {image_error}]"
+        image_prompt = f"{image_prompt}\n\n[이미지 생성 오류: {image_error}]"
 
     return {
         "generated_image_prompt": image_prompt,
