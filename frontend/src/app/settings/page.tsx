@@ -133,13 +133,13 @@ export default function SettingsPage() {
     <main className="app-container">
       {/* 헤더 */}
       <header className="glass-card" style={{ padding: "1rem 1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <h1 className="gradient-text" style={{ fontSize: "1.25rem", fontWeight: 700 }}>설정</h1>
-          <p className="subheading" style={{ fontSize: "0.8rem" }}>{settings?.email}</p>
-        </div>
-        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexShrink: 0, flexWrap: "nowrap" }}>
-          <a href="/" className="text-nowrap" style={{ color: "var(--color-accent)", fontSize: "0.875rem", textDecoration: "none" }}>← 메인으로</a>
-          <button onClick={handleLogout} className="btn" style={{ padding: "0.4rem 0.9rem", fontSize: "0.8rem", background: "rgba(239,68,68,0.15)", color: "var(--color-error)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "8px", whiteSpace: "nowrap" }}>로그아웃</button>
+        <h1 className="gradient-text" style={{ fontSize: "1.25rem", fontWeight: 700 }}>설정</h1>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.4rem" }}>
+          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{settings?.email}</span>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <a href="/" style={{ fontSize: "0.75rem", color: "var(--color-accent)", textDecoration: "none", padding: "3px 8px", border: "1px solid rgba(6,182,212,0.3)", borderRadius: "6px" }}>← 메인으로</a>
+            <button onClick={handleLogout} style={{ fontSize: "0.75rem", color: "var(--color-error)", background: "none", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "6px", padding: "3px 8px", cursor: "pointer" }}>로그아웃</button>
+          </div>
         </div>
       </header>
 
