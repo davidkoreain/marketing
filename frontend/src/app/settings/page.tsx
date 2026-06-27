@@ -55,7 +55,7 @@ export default function SettingsPage() {
   const [openaiKey, setOpenaiKey] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
   const [textModel, setTextModel] = useState("gemini");
-  const [imageModel, setImageModel] = useState("openai");
+  const [imageModel, setImageModel] = useState("gemini");
   const [videoModel, setVideoModel] = useState("pollinations");
   const [igToken, setIgToken] = useState("");
   const [igAccountId, setIgAccountId] = useState("");
@@ -72,7 +72,7 @@ export default function SettingsPage() {
       .then((data) => {
         setSettings(data);
         setTextModel(data.text_model || "gemini");
-        setImageModel(data.image_model || "openai");
+        setImageModel(data.image_model || "gemini");
         setVideoModel(data.video_model || "pollinations");
         setIgAccountId(data.instagram_account_id || "");
         setKakaoChannelId(data.kakao_channel_id || "");
@@ -138,7 +138,7 @@ export default function SettingsPage() {
           <p className="subheading" style={{ fontSize: "0.8rem" }}>{settings?.email}</p>
         </div>
         <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-          <Link href="/" style={{ color: "var(--color-accent)", fontSize: "0.875rem", textDecoration: "none" }}>
+          <Link href="/" style={{ color: "var(--color-accent)", fontSize: "0.875rem", textDecoration: "none", whiteSpace: "nowrap" }}>
             ← 메인으로
           </Link>
           <button onClick={handleLogout} className="btn" style={{ padding: "0.4rem 0.9rem", fontSize: "0.8rem", background: "rgba(239,68,68,0.15)", color: "var(--color-error)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "8px" }}>
