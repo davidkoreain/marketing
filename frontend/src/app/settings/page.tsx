@@ -244,7 +244,7 @@ export default function SettingsPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               {[
                 { value: "pollinations", label: "이미지 기반 프리뷰", desc: "API 불필요 · Ken Burns 애니메이션 · 다운로드 가능", badge: "무료 추천", free: true, disabled: false },
-                { value: "veo3", label: "Veo 3 (Google)", desc: "Gemini API 필요 · 고품질 AI 영상 8초 · Google AI Ultra 플랜", badge: "준비 중", free: false, disabled: true },
+                { value: "veo3", label: "Veo 3 (Google)", desc: "Gemini API 필요 · 고품질 AI 영상 8초 · Google AI Ultra 플랜", badge: "유료", free: false, disabled: false },
                 { value: "runway", label: "Runway Gen-3", desc: "Runway API 키 필요 · 고품질 AI 영상 · 연동 예정", badge: "준비 중", free: false, disabled: true },
               ].map((opt) => (
                 <label key={opt.value} style={{
