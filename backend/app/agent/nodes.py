@@ -164,28 +164,38 @@ def generate_image_node(state: AgentState) -> dict:
             image_error = "OpenAI API 키가 없습니다. 설정에서 입력하거나 Gemini 이미지 모델로 변경해주세요."
 
     elif image_model == "gemini":
+        # Imagen 3는 Vertex AI 전용 — 일반 Gemini API 키로 접근 불가
+        # 1차: Gemini 네이티브 이미지 생성 시도
         gemini_key = state.get("gemini_api_key") or GEMINI_API_KEY
+        _img_generated = False
         if gemini_key and not gemini_key.startswith("your_gemini"):
             try:
                 from google import genai as google_genai
                 from google.genai import types as genai_types
-                client = google_genai.Client(api_key=gemini_key)
-                resp = client.models.generate_images(
-                    model="imagen-3.0-generate-001",
-                    prompt=image_prompt,
-                    config=genai_types.GenerateImagesConfig(number_of_images=1),
+                _client = google_genai.Client(api_key=gemini_key)
+                _resp = _client.models.generate_content(
+                    model="gemini-2.0-flash-preview-image-generation",
+                    contents=image_prompt,
+                    config=genai_types.GenerateContentConfig(
+                        response_modalities=["IMAGE"]
+                    ),
                 )
-                if resp.generated_images:
-                    import base64
-                    img_bytes = resp.generated_images[0].image.image_bytes
-                    b64 = base64.b64encode(img_bytes).decode("utf-8")
-                    image_url = f"data:image/png;base64,{b64}"
-                else:
-                    image_error = "Imagen: 이미지가 생성되지 않았습니다."
-            except Exception as e:
-                image_error = f"Imagen 오류: {e}"
-        else:
-            image_error = "Gemini API 키가 없습니다."
+                for _part in _resp.candidates[0].content.parts:
+                    if hasattr(_part, "inline_data") and _part.inline_data:
+                        import base64
+                        _b64 = base64.b64encode(_part.inline_data.data).decode("utf-8")
+                        _mime = getattr(_part.inline_data, "mime_type", "image/png") or "image/png"
+                        image_url = f"data:{_mime};base64,{_b64}"
+                        _img_generated = True
+                        break
+            except Exception:
+                pass
+        # 2차: Pollinations.ai (Flux 모델, 완전 무료, API 키 불필요)
+        if not _img_generated:
+            import urllib.parse, random
+            _encoded = urllib.parse.quote(image_prompt[:400])
+            _seed = random.randint(10000, 99999)
+            image_url = f"https://image.pollinations.ai/prompt/{_encoded}?model=flux&width=1024&height=1024&nologo=true&seed={_seed}"
 
     if image_error:
         image_prompt = f"{image_prompt}\n\n[이미지 생성 실패: {image_error}]"

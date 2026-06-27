@@ -213,7 +213,7 @@ export default function SettingsPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
               {[
                 { value: "openai", label: "OpenAI DALL-E 3", desc: "고품질 이미지 · 유료 크레딧 필요", badge: "고품질" },
-                { value: "gemini", label: "Google Imagen 3", desc: "Gemini API 키 사용 · 베타", badge: "베타" },
+                { value: "gemini", label: "Flux AI (무료)", desc: "API 키 불필요 · Gemini 프롬프트 최적화", badge: "무료" },
               ].map((opt) => (
                 <label key={opt.value} style={{
                   display: "flex", flexDirection: "column", gap: "0.3rem",
@@ -225,7 +225,7 @@ export default function SettingsPage() {
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     <input type="radio" name="image_model" value={opt.value} checked={imageModel === opt.value} onChange={() => setImageModel(opt.value)} style={{ accentColor: "var(--color-secondary)" }} />
                     <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{opt.label}</span>
-                    {opt.badge && <span style={{ fontSize: "0.65rem", background: opt.value === "openai" ? "rgba(99,102,241,0.2)" : "rgba(245,158,11,0.2)", color: opt.value === "openai" ? "var(--color-primary)" : "#f59e0b", padding: "1px 6px", borderRadius: "999px", fontWeight: 700 }}>{opt.badge}</span>}
+                    {opt.badge && <span style={{ fontSize: "0.65rem", background: opt.value === "openai" ? "rgba(99,102,241,0.2)" : "rgba(16,185,129,0.2)", color: opt.value === "openai" ? "var(--color-primary)" : "var(--color-success)", padding: "1px 6px", borderRadius: "999px", fontWeight: 700 }}>{opt.badge}</span>}
                   </div>
                   <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", paddingLeft: "1.4rem" }}>{opt.desc}</span>
                 </label>
