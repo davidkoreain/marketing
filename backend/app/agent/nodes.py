@@ -1,6 +1,8 @@
 from app.agent.state import AgentState
 from app.config import OPENAI_API_KEY, GEMINI_API_KEY, DEFAULT_LLM_MODEL
 
+GEMINI_TEXT_MODEL = "gemini-2.5-flash"
+
 def get_llm(state: dict):
     """사용자가 선택한 text_model 우선, 없으면 사용 가능한 키로 fallback"""
     model_pref = state.get("text_model") or "gemini"
@@ -14,10 +16,25 @@ def get_llm(state: dict):
         return None
 
     def _gemini():
-        if gemini_key and not gemini_key.startswith("your_gemini"):
-            from langchain_google_genai import ChatGoogleGenerativeAI
-            return ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=gemini_key, temperature=0.7)
-        return None
+        if not (gemini_key and not gemini_key.startswith("your_gemini")):
+            return None
+        try:
+            from google import genai as google_genai
+            _client = google_genai.Client(api_key=gemini_key)
+
+            class _GeminiWrapper:
+                def invoke(self, prompt):
+                    resp = _client.models.generate_content(
+                        model=GEMINI_TEXT_MODEL,
+                        contents=prompt,
+                    )
+                    class _R:
+                        content = resp.text
+                    return _R()
+
+            return _GeminiWrapper()
+        except Exception:
+            return None
 
     if model_pref == "openai":
         return _openai() or _gemini()
