@@ -53,6 +53,7 @@ export default function SoMaBiPage() {
   const [currentAgent, setCurrentAgent] = useState<string | null>(null);
   const [publishChannels, setPublishChannels] = useState<string[]>(["instagram", "kakaotalk"]);
   const [publishResults, setPublishResults] = useState<Record<string, string>>({});
+  const [rejectCount, setRejectCount] = useState(0);
 
   // Form input change handler
   const handleInputChange = (
@@ -157,16 +158,16 @@ export default function SoMaBiPage() {
       setFeedbackText("");
 
       if (action === "approve") {
+        setRejectCount(0); // 단계 이동 시 카운터 초기화
         if (currentStage === "post" && nextSteps.includes("image_review")) {
           setCurrentStage("image");
         } else if (currentStage === "image" && nextSteps.includes("video_review")) {
           setCurrentStage("video");
         } else if (currentStage === "video" && data.is_finished) {
-          // 영상 승인 후 LangGraph 워크플로우 종료 → 배포 단계로 이동
           setCurrentStage("publish");
         }
       } else {
-        alert("피드백이 반영되어 콘텐츠가 재생성되었습니다.");
+        setRejectCount((c) => c + 1);
       }
     } catch (err: any) {
       setError(err.message || "피드백 처리 중 문제가 발생했습니다.");
@@ -243,8 +244,40 @@ export default function SoMaBiPage() {
     setPublishChannels(["instagram", "kakaotalk"]);
     setPublishResults({});
     setFeedbackText("");
+    setRejectCount(0);
     setError(null);
   };
+
+  // 반려 후 유료 모델 업그레이드 제안 배너
+  const upgradeBanner = rejectCount >= 1 ? (
+    <div style={{
+      display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem",
+      background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.25)",
+      borderRadius: "10px", padding: "0.75rem 1rem", marginBottom: "0.75rem",
+    }}>
+      <div>
+        <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--color-primary)" }}>
+          💡 결과물이 마음에 들지 않으시나요?
+        </p>
+        <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
+          {currentStage === "post"
+            ? "GPT-4o(유료)로 전환하면 더 정교한 마케팅 글을 생성할 수 있어요."
+            : currentStage === "image"
+            ? "DALL-E 3(유료)로 전환하면 더 고품질의 이미지를 생성할 수 있어요."
+            : "영상 생성 AI(Sora, Veo 3 등) 연동이 곧 추가될 예정입니다."}
+        </p>
+      </div>
+      {currentStage !== "video" && (
+        <Link href="/settings" style={{
+          fontSize: "0.75rem", color: "white", textDecoration: "none",
+          background: "var(--color-primary)", padding: "0.4rem 0.75rem",
+          borderRadius: "6px", whiteSpace: "nowrap", flexShrink: 0,
+        }}>
+          유료 모델 전환
+        </Link>
+      )}
+    </div>
+  ) : null;
 
   return (
     <main className="app-container">
@@ -446,6 +479,8 @@ export default function SoMaBiPage() {
               />
             </div>
 
+            {upgradeBanner}
+
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1.5rem" }}>
               <button
                 type="button"
@@ -540,6 +575,8 @@ export default function SoMaBiPage() {
                 disabled={loading}
               />
             </div>
+
+            {upgradeBanner}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1.5rem" }}>
               <button
@@ -641,6 +678,8 @@ export default function SoMaBiPage() {
                 disabled={loading}
               />
             </div>
+
+            {upgradeBanner}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1.5rem" }}>
               <button

@@ -93,11 +93,8 @@ def start_session(
         # 사용자 DB에서 API 키 및 모델 선택 주입
         "openai_api_key": current_user.openai_api_key,
         "gemini_api_key": current_user.gemini_api_key,
-        "text_model": current_user.text_model or "gemini",
-        # 저장된 선택 없으면: gemini 키 있으면 gemini, 아니면 openai
-        "image_model": current_user.image_model or (
-            "gemini" if current_user.gemini_api_key else "openai"
-        ),
+        "text_model": current_user.text_model or "gemini",   # 기본: 무료(Gemini)
+        "image_model": current_user.image_model or "gemini", # 기본: 무료(Flux AI)
     }
 
     try:

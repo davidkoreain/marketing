@@ -177,17 +177,22 @@ export default function SettingsPage() {
         {/* AI 모델 선택 */}
         <div className="glass-card" style={{ padding: "1.5rem" }}>
           <SectionTitle>⚙️ AI 모델 선택</SectionTitle>
-          <p className="subheading" style={{ fontSize: "0.8rem", marginBottom: "1.25rem" }}>
-            각 단계에서 사용할 AI 모델을 선택하세요. 선택한 모델의 API 키가 위에 등록되어 있어야 합니다.
-          </p>
+          <div style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: "8px", padding: "0.75rem 1rem", marginBottom: "1.25rem" }}>
+            <p style={{ fontSize: "0.8rem", color: "var(--color-success)", fontWeight: 600 }}>
+              ✅ 기본값은 모두 무료 모델로 설정되어 있습니다
+            </p>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
+              무료 모델로 먼저 생성해보고, 결과가 마음에 들지 않으면 유료 모델로 전환해 보세요.
+            </p>
+          </div>
 
           {/* 글 작성 모델 */}
           <div className="form-group">
             <label className="form-label">✍️ 홍보글 작성 모델</label>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
               {[
-                { value: "gemini", label: "Google Gemini", desc: "Gemini 1.5 Flash · 무료 티어 지원", badge: "추천" },
-                { value: "openai", label: "OpenAI GPT", desc: "GPT-4o · 유료 크레딧 필요", badge: "" },
+                { value: "gemini", label: "Google Gemini", desc: "Gemini 2.5 Flash · 무료 티어 지원", badge: "무료 추천" },
+                { value: "openai", label: "OpenAI GPT-4o", desc: "더 정교한 글 · 유료 크레딧 필요", badge: "유료" },
               ].map((opt) => (
                 <label key={opt.value} style={{
                   display: "flex", flexDirection: "column", gap: "0.3rem",
@@ -199,7 +204,7 @@ export default function SettingsPage() {
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     <input type="radio" name="text_model" value={opt.value} checked={textModel === opt.value} onChange={() => setTextModel(opt.value)} style={{ accentColor: "var(--color-primary)" }} />
                     <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{opt.label}</span>
-                    {opt.badge && <span style={{ fontSize: "0.65rem", background: "rgba(16,185,129,0.2)", color: "var(--color-success)", padding: "1px 6px", borderRadius: "999px", fontWeight: 700 }}>{opt.badge}</span>}
+                    {opt.badge && <span style={{ fontSize: "0.65rem", background: opt.value === "gemini" ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.15)", color: opt.value === "gemini" ? "var(--color-success)" : "var(--color-error)", padding: "1px 6px", borderRadius: "999px", fontWeight: 700 }}>{opt.badge}</span>}
                   </div>
                   <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", paddingLeft: "1.4rem" }}>{opt.desc}</span>
                 </label>
@@ -212,8 +217,8 @@ export default function SettingsPage() {
             <label className="form-label">🎨 이미지 생성 모델</label>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
               {[
-                { value: "openai", label: "OpenAI DALL-E 3", desc: "고품질 이미지 · 유료 크레딧 필요", badge: "고품질" },
-                { value: "gemini", label: "Flux AI (무료)", desc: "API 키 불필요 · Gemini 프롬프트 최적화", badge: "무료" },
+                { value: "gemini", label: "Flux AI", desc: "API 키 불필요 · Gemini 프롬프트 최적화", badge: "무료 추천" },
+                { value: "openai", label: "OpenAI DALL-E 3", desc: "최고 품질 이미지 · 유료 크레딧 필요", badge: "유료" },
               ].map((opt) => (
                 <label key={opt.value} style={{
                   display: "flex", flexDirection: "column", gap: "0.3rem",
@@ -225,7 +230,7 @@ export default function SettingsPage() {
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     <input type="radio" name="image_model" value={opt.value} checked={imageModel === opt.value} onChange={() => setImageModel(opt.value)} style={{ accentColor: "var(--color-secondary)" }} />
                     <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{opt.label}</span>
-                    {opt.badge && <span style={{ fontSize: "0.65rem", background: opt.value === "openai" ? "rgba(99,102,241,0.2)" : "rgba(16,185,129,0.2)", color: opt.value === "openai" ? "var(--color-primary)" : "var(--color-success)", padding: "1px 6px", borderRadius: "999px", fontWeight: 700 }}>{opt.badge}</span>}
+                    {opt.badge && <span style={{ fontSize: "0.65rem", background: opt.value === "gemini" ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.15)", color: opt.value === "gemini" ? "var(--color-success)" : "var(--color-error)", padding: "1px 6px", borderRadius: "999px", fontWeight: 700 }}>{opt.badge}</span>}
                   </div>
                   <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", paddingLeft: "1.4rem" }}>{opt.desc}</span>
                 </label>
