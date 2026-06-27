@@ -120,7 +120,8 @@ def start_session(
 @app.post("/api/feedback")
 def process_feedback(
     data: FeedbackRequest,
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     config = {"configurable": {"thread_id": data.thread_id}}
 
@@ -128,18 +129,29 @@ def process_feedback(
     if not state_info.values:
         raise HTTPException(status_code=404, detail="해당 스레드 ID의 마케팅 세션을 찾을 수 없습니다.")
 
+    # 매 단계마다 DB에서 최신 API 키와 모델 설정을 주입 (세션 시작 시점과 무관하게 항상 최신값 사용)
+    db.refresh(current_user)
+    fresh_keys = {
+        "openai_api_key": current_user.openai_api_key,
+        "gemini_api_key": current_user.gemini_api_key,
+        "fal_api_key": current_user.fal_api_key,
+        "text_model": current_user.text_model or "gemini",
+        "image_model": current_user.image_model or "gemini",
+        "video_model": current_user.video_model or "pollinations",
+    }
+
     current_approved = list(state_info.values.get("approved_stages", []))
 
     if data.action == "approve":
         if data.stage not in current_approved:
             current_approved.append(data.stage)
-        update_values = {"approved_stages": current_approved, "user_feedback": None}
+        update_values = {**fresh_keys, "approved_stages": current_approved, "user_feedback": None}
     elif data.action == "reject":
         if not data.feedback:
             raise HTTPException(status_code=400, detail="반려(reject) 시에는 피드백(feedback) 내용이 필수입니다.")
         if data.stage in current_approved:
             current_approved.remove(data.stage)
-        update_values = {"approved_stages": current_approved, "user_feedback": data.feedback}
+        update_values = {**fresh_keys, "approved_stages": current_approved, "user_feedback": data.feedback}
     else:
         raise HTTPException(status_code=400, detail="action 필드는 'approve' 또는 'reject'여야 합니다.")
 
