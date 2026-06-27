@@ -480,7 +480,12 @@ export default function SoMaBiPage() {
 
       {/* 진행 상황 바 */}
       <div className="glass-card" style={{ padding: "1rem 1.5rem" }}>
-        <Stepper currentStage={currentStage} />
+        <Stepper currentStage={currentStage} onStepClick={(stage) => {
+          const order = ["input", "post", "image", "video", "publish", "done"];
+          if (order.indexOf(stage) <= order.indexOf(currentStage)) {
+            setCurrentStage(stage as typeof currentStage);
+          }
+        }} />
       </div>
 
       {/* 에러 메시지 표시 */}
@@ -639,12 +644,14 @@ export default function SoMaBiPage() {
         {/* [2단계] 홍보글 검토 */}
         {currentStage === "post" && (
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-              <h2 className="gradient-text" style={{ fontSize: "1.25rem" }}>
-                ✍️ [1단계] SNS 홍보글 검토
-              </h2>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
+              <div>
+                <h2 className="gradient-text" style={{ fontSize: "1.25rem", marginBottom: "0.35rem" }}>
+                  ✍️ [1단계] SNS 홍보글 검토
+                </h2>
                 <ModelBadge type="text" />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0, marginTop: "0.15rem" }}>
                 <SaveButton />
                 <span className="subheading" style={{ fontSize: "0.75rem", background: "rgba(99, 102, 241, 0.15)", color: "var(--color-primary)", padding: "0.25rem 0.5rem", borderRadius: "0.25rem", fontWeight: 700 }}>
                   🤖 카피라이터 에이전트
@@ -727,12 +734,14 @@ export default function SoMaBiPage() {
         {/* [3단계] 홍보 이미지 검토 */}
         {currentStage === "image" && (
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-              <h2 className="gradient-text" style={{ fontSize: "1.25rem" }}>
-                🎨 [2단계] 홍보 이미지 검토
-              </h2>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
+              <div>
+                <h2 className="gradient-text" style={{ fontSize: "1.25rem", marginBottom: "0.35rem" }}>
+                  🎨 [2단계] 홍보 이미지 검토
+                </h2>
                 <ModelBadge type="image" />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0, marginTop: "0.15rem" }}>
                 <SaveButton />
                 <span className="subheading" style={{ fontSize: "0.75rem", background: "rgba(168, 85, 247, 0.15)", color: "var(--color-secondary)", padding: "0.25rem 0.5rem", borderRadius: "0.25rem", fontWeight: 700 }}>
                   🤖 디자이너 에이전트
@@ -828,12 +837,14 @@ export default function SoMaBiPage() {
         {/* [4단계] 쇼츠 영상 검토 */}
         {currentStage === "video" && (
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-              <h2 className="gradient-text" style={{ fontSize: "1.25rem" }}>
-                🎬 [3단계] 쇼츠 영상 검토
-              </h2>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
+              <div>
+                <h2 className="gradient-text" style={{ fontSize: "1.25rem", marginBottom: "0.35rem" }}>
+                  🎬 [3단계] 쇼츠 영상 검토
+                </h2>
                 <ModelBadge type="video" />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0, marginTop: "0.15rem" }}>
                 <SaveButton />
                 <span className="subheading" style={{ fontSize: "0.75rem", background: "rgba(6, 182, 212, 0.15)", color: "var(--color-accent)", padding: "0.25rem 0.5rem", borderRadius: "0.25rem", fontWeight: 700 }}>
                   🤖 영상 편집자 에이전트
