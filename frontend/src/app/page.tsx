@@ -15,6 +15,11 @@ export default function SoMaBiPage() {
     const token = localStorage.getItem("token");
     if (!token) { router.push("/login"); return; }
     setUserEmail(localStorage.getItem("email"));
+    // 저장된 세션 확인
+    try {
+      const raw = localStorage.getItem("somabi_session");
+      if (raw) setSavedSession(JSON.parse(raw));
+    } catch {}
   }, [router]);
 
   function getAuthHeader() {
@@ -54,6 +59,8 @@ export default function SoMaBiPage() {
   const [publishChannels, setPublishChannels] = useState<string[]>(["instagram", "kakaotalk"]);
   const [publishResults, setPublishResults] = useState<Record<string, string>>({});
   const [rejectCount, setRejectCount] = useState(0);
+  const [savedSession, setSavedSession] = useState<any>(null);
+  const [saveMsg, setSaveMsg] = useState("");
 
   // Form input change handler
   const handleInputChange = (
@@ -94,6 +101,14 @@ export default function SoMaBiPage() {
       setGeneratedPost(stateValues.generated_post);
       setCurrentAgent(stateValues.current_agent || "카피라이터 에이전트");
       setCurrentStage("post");
+      // 자동 저장
+      localStorage.setItem("somabi_session", JSON.stringify({
+        savedAt: new Date().toLocaleString("ko-KR"),
+        currentStage: "post", threadId: data.thread_id, formData,
+        generatedPost: stateValues.generated_post,
+        generatedImagePrompt: null, generatedImageUrl: null,
+        generatedVideoScript: null, generatedVideoUrl: null,
+      }));
     } catch (err: any) {
       setError(err.message || "세션을 시작하는 중 문제가 발생했습니다.");
     } finally {
@@ -157,8 +172,25 @@ export default function SoMaBiPage() {
       // Clear feedback input
       setFeedbackText("");
 
+      // 자동 저장
+      const nextStage = action === "approve"
+        ? (currentStage === "post" && nextSteps.includes("image_review") ? "image"
+          : currentStage === "image" && nextSteps.includes("video_review") ? "video"
+          : currentStage === "video" && data.is_finished ? "publish"
+          : currentStage)
+        : currentStage;
+      localStorage.setItem("somabi_session", JSON.stringify({
+        savedAt: new Date().toLocaleString("ko-KR"),
+        currentStage: nextStage, threadId, formData,
+        generatedPost: stateValues.generated_post,
+        generatedImagePrompt: stateValues.generated_image_prompt,
+        generatedImageUrl: stateValues.generated_image_url,
+        generatedVideoScript: stateValues.generated_video_script,
+        generatedVideoUrl: stateValues.generated_video_url,
+      }));
+
       if (action === "approve") {
-        setRejectCount(0); // 단계 이동 시 카운터 초기화
+        setRejectCount(0);
         if (currentStage === "post" && nextSteps.includes("image_review")) {
           setCurrentStage("image");
         } else if (currentStage === "image" && nextSteps.includes("video_review")) {
@@ -246,7 +278,52 @@ export default function SoMaBiPage() {
     setFeedbackText("");
     setRejectCount(0);
     setError(null);
+    localStorage.removeItem("somabi_session");
+    setSavedSession(null);
   };
+
+  // 세션 저장
+  function saveSession() {
+    const data = {
+      savedAt: new Date().toLocaleString("ko-KR"),
+      currentStage, threadId, formData,
+      generatedPost, generatedImagePrompt, generatedImageUrl,
+      generatedVideoScript, generatedVideoUrl,
+    };
+    localStorage.setItem("somabi_session", JSON.stringify(data));
+    setSaveMsg("저장되었습니다!");
+    setTimeout(() => setSaveMsg(""), 2000);
+  }
+
+  // 세션 복원
+  function restoreSession(data: any) {
+    if (data.formData) setFormData(data.formData);
+    if (data.threadId) setThreadId(data.threadId);
+    if (data.generatedPost) setGeneratedPost(data.generatedPost);
+    if (data.generatedImagePrompt) setGeneratedImagePrompt(data.generatedImagePrompt);
+    if (data.generatedImageUrl) setGeneratedImageUrl(data.generatedImageUrl);
+    if (data.generatedVideoScript) setGeneratedVideoScript(data.generatedVideoScript);
+    if (data.generatedVideoUrl) setGeneratedVideoUrl(data.generatedVideoUrl);
+    if (data.currentStage) setCurrentStage(data.currentStage);
+    setSavedSession(null);
+  }
+
+  // 저장 버튼 컴포넌트
+  const SaveButton = () => (
+    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+      {saveMsg && <span style={{ fontSize: "0.7rem", color: "var(--color-success)" }}>{saveMsg}</span>}
+      <button
+        onClick={saveSession}
+        style={{
+          fontSize: "0.7rem", padding: "0.25rem 0.6rem", cursor: "pointer",
+          background: "rgba(16,185,129,0.15)", color: "var(--color-success)",
+          border: "1px solid rgba(16,185,129,0.3)", borderRadius: "6px",
+        }}
+      >
+        💾 저장
+      </button>
+    </div>
+  );
 
   // 반려 후 유료 모델 업그레이드 제안 배너
   const upgradeBanner = rejectCount >= 1 ? (
@@ -323,14 +400,50 @@ export default function SoMaBiPage() {
         </div>
       )}
 
+      {/* 저장된 세션 복원 배너 */}
+      {savedSession && currentStage === "input" && (
+        <div className="glass-card fade-in" style={{ borderColor: "rgba(99,102,241,0.3)", background: "rgba(99,102,241,0.08)", padding: "1rem 1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
+          <div>
+            <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-primary)" }}>
+              💾 이전 작업이 저장되어 있습니다
+            </p>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
+              저장 시각: {savedSession.savedAt} · {
+                savedSession.currentStage === "post" ? "홍보글 단계" :
+                savedSession.currentStage === "image" ? "이미지 단계" :
+                savedSession.currentStage === "video" ? "영상 단계" :
+                savedSession.currentStage === "publish" ? "배포 단계" : "정보 입력"
+              }
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
+            <button
+              onClick={() => restoreSession(savedSession)}
+              style={{ fontSize: "0.8rem", padding: "0.4rem 0.9rem", cursor: "pointer", background: "var(--color-primary)", color: "white", border: "none", borderRadius: "7px", fontWeight: 600 }}
+            >
+              이어서 하기
+            </button>
+            <button
+              onClick={() => { localStorage.removeItem("somabi_session"); setSavedSession(null); }}
+              style={{ fontSize: "0.8rem", padding: "0.4rem 0.7rem", cursor: "pointer", background: "rgba(239,68,68,0.12)", color: "var(--color-error)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "7px" }}
+            >
+              삭제
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 메인 작업 영역 */}
       <div className="glass-card fade-in" key={currentStage}>
         {/* [1단계] 정보 입력 폼 */}
         {currentStage === "input" && (
           <form onSubmit={handleStartSession}>
-            <h2 className="gradient-text" style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>
-              📢 상품 정보 입력
-            </h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <h2 className="gradient-text" style={{ fontSize: "1.25rem" }}>
+                📢 상품 정보 입력
+              </h2>
+              <SaveButton />
+            </div>
             <p className="subheading" style={{ marginBottom: "1.5rem" }}>
               홍보하고자 하는 상품/이벤트 정보를 기입해 주시면 AI가 SNS 마케팅 콘텐츠 기획을 시작합니다.
             </p>
@@ -431,9 +544,12 @@ export default function SoMaBiPage() {
               <h2 className="gradient-text" style={{ fontSize: "1.25rem" }}>
                 ✍️ [1단계] SNS 홍보글 검토
               </h2>
-              <span className="subheading" style={{ fontSize: "0.75rem", background: "rgba(99, 102, 241, 0.15)", color: "var(--color-primary)", padding: "0.25rem 0.5rem", borderRadius: "0.25rem", fontWeight: 700 }}>
-                🤖 카피라이터 에이전트
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <SaveButton />
+                <span className="subheading" style={{ fontSize: "0.75rem", background: "rgba(99, 102, 241, 0.15)", color: "var(--color-primary)", padding: "0.25rem 0.5rem", borderRadius: "0.25rem", fontWeight: 700 }}>
+                  🤖 카피라이터 에이전트
+                </span>
+              </div>
             </div>
             <p className="subheading" style={{ marginBottom: "1.5rem" }}>
               생성된 글을 확인해 보세요. 마음에 들지 않는 부분을 피드백하면 실시간으로 반영하여 고쳐 드립니다.
@@ -515,9 +631,12 @@ export default function SoMaBiPage() {
               <h2 className="gradient-text" style={{ fontSize: "1.25rem" }}>
                 🎨 [2단계] 홍보 이미지 검토
               </h2>
-              <span className="subheading" style={{ fontSize: "0.75rem", background: "rgba(168, 85, 247, 0.15)", color: "var(--color-secondary)", padding: "0.25rem 0.5rem", borderRadius: "0.25rem", fontWeight: 700 }}>
-                🤖 디자이너 에이전트
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <SaveButton />
+                <span className="subheading" style={{ fontSize: "0.75rem", background: "rgba(168, 85, 247, 0.15)", color: "var(--color-secondary)", padding: "0.25rem 0.5rem", borderRadius: "0.25rem", fontWeight: 700 }}>
+                  🤖 디자이너 에이전트
+                </span>
+              </div>
             </div>
             <p className="subheading" style={{ marginBottom: "1.5rem" }}>
               홍보글과 어울리는 이미지를 생성했습니다. 구도나 요소를 바꾸고 싶다면 피드백 의견을 전달해 주세요.
@@ -612,9 +731,12 @@ export default function SoMaBiPage() {
               <h2 className="gradient-text" style={{ fontSize: "1.25rem" }}>
                 🎬 [3단계] 쇼츠 영상 검토
               </h2>
-              <span className="subheading" style={{ fontSize: "0.75rem", background: "rgba(6, 182, 212, 0.15)", color: "var(--color-accent)", padding: "0.25rem 0.5rem", borderRadius: "0.25rem", fontWeight: 700 }}>
-                🤖 영상 편집자 에이전트
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <SaveButton />
+                <span className="subheading" style={{ fontSize: "0.75rem", background: "rgba(6, 182, 212, 0.15)", color: "var(--color-accent)", padding: "0.25rem 0.5rem", borderRadius: "0.25rem", fontWeight: 700 }}>
+                  🤖 영상 편집자 에이전트
+                </span>
+              </div>
             </div>
             <p className="subheading" style={{ marginBottom: "1.5rem" }}>
               마케팅용 15초 쇼츠 비디오 스크립트와 영상 프리뷰를 검토해 보세요.
