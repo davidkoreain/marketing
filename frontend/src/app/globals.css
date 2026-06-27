@@ -44,6 +44,14 @@ body {
   background-attachment: fixed;
 }
 
+/* 텍스트 줄바꿈 방지 */
+.text-nowrap {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  display: inline-block !important;
+}
+
 /* 프리미엄 유틸리티 클래스 */
 .app-container {
   max-width: 640px; /* 모바일 우선 크기 고정 */

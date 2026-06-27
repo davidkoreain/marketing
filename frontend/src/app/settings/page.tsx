@@ -138,7 +138,7 @@ export default function SettingsPage() {
           <p className="subheading" style={{ fontSize: "0.8rem" }}>{settings?.email}</p>
         </div>
         <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexShrink: 0, flexWrap: "nowrap" }}>
-          <a href="/" style={{ color: "var(--color-accent)", fontSize: "0.875rem", textDecoration: "none", whiteSpace: "nowrap", display: "inline-block" }}>← 메인으로</a>
+          <a href="/" className="text-nowrap" style={{ color: "var(--color-accent)", fontSize: "0.875rem", textDecoration: "none" }}>← 메인으로</a>
           <button onClick={handleLogout} className="btn" style={{ padding: "0.4rem 0.9rem", fontSize: "0.8rem", background: "rgba(239,68,68,0.15)", color: "var(--color-error)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "8px", whiteSpace: "nowrap" }}>로그아웃</button>
         </div>
       </header>
