@@ -818,7 +818,7 @@ export default function SoMaBiPage() {
 
             {/* 이미지 생성 오류 배너 */}
             {(() => {
-              const errMatch = generatedImagePrompt?.match(/\[이미지 생성 오류: (.+?)\]$/s);
+              const errMatch = generatedImagePrompt?.match(/\[이미지 생성 오류: ([\s\S]+?)\]$/);
               if (!errMatch) return null;
               const [, errMsg] = errMatch;
               return (
